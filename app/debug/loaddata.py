@@ -12,13 +12,11 @@ PATH = os.path.join(get_data_path(), "fake_data.parquet")
 LABEL = ["y"]
 FEATURES = ["f1", "f2", "f3"]
 DFFILTER = "date > '2020-01-02'"
-DEVICE = "cpu"
 
-TestData = LoadData(path=PATH, label=LABEL, features=FEATURES, dffilter=DFFILTER, device=DEVICE)
+TestData = LoadData(path=PATH, label=LABEL, features=FEATURES, dffilter=DFFILTER)
 
 logger.info(f"Label: {TestData.label}")
 logger.info(f"Features: {TestData.features}")
-logger.info(f"Device: {TestData.device}")
 
 logger.info(f"Days: {TestData.days}")
 logger.info(f"Data: {TestData.data}")
