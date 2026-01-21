@@ -3,14 +3,14 @@ import torch
 from app.configs.default import config
 from app.core.registry import LOSSES_REGISTRY, MODELS_REGISTRY
 from app.core.training import Trainer
-from app.data.dataload import DataLoader
+from app.data.loaddata import LoadData
 print("Training script is currently disabled.")
 
 # device
 DEVICE = torch.device(config["device"])
 
 # # data
-train_loader = DataLoader(config["data"], split="train")
+train_loader = LoadData(config["data"], split="train")
 
 # # model
 # model_cfg = config["model"]
