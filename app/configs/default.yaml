@@ -1,0 +1,63 @@
+# app/configs/default.yaml
+
+# ======================
+# Data configuration
+# ======================
+data:
+  traindata:
+    file: fake_data.parquet
+    label:
+      - y
+    features: fake.pkl
+    filter: null
+
+  validdata:
+    file: fake_data.parquet
+    label:
+      - y
+    features: fake.pkl
+    filter: date >= 20200103
+
+  # testdata:
+  #   file: fake_data.parquet
+  #   label: []
+  #   features: fake.pkl
+  #   filter: null
+
+
+# ======================
+# Model configuration
+# ======================
+model:
+  name: mlp
+  params:
+    hidden_dim: 32
+    init: xavier   # Reserved: xavier / normal / kaiming
+
+
+# ======================
+# Loss configuration
+# ======================
+loss:
+  name: mse
+  params: {}
+
+
+# ======================
+# Training configuration
+# ======================
+train:
+  epochs: 2
+  lr: 1e-3
+  device: cpu
+
+
+# ======================
+# Metric
+# ======================
+# metric:
+#   name: rmse
+#   params: {}
+
+
+# end of app/configs/default.yaml

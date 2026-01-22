@@ -1,4 +1,4 @@
-# src/core/registry.py
+# app/core/registry.py
 
 import torch.nn as nn
 from typing import Type, Callable, Dict
@@ -35,4 +35,4 @@ def register_models(name: str) -> Callable[[Type[nn.Module]], Type[nn.Module]]:
     return wrapper
 
 
-# end of src/core/registry.py
+# end of app/core/registry.py

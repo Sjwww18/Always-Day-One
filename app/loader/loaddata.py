@@ -10,7 +10,7 @@ class LoadData:
     """
     This loader keeps all data in memory and yields full-batch per trading day.
     """
-    def __init__(self, path: str, label: List[str], features: List[str], dffilter: Optional[str]=None):        
+    def __init__(self, path: str, label: List[str], features: List[str], dffilter: Optional[str]=None):
         cols = ["date", "stock", "interval"] + features + label
         df = pd.read_parquet(path, engine="pyarrow", columns=cols)
         
@@ -44,7 +44,7 @@ class LoadData:
         date: str or datetime.datetime. The trading date (e.g. "2020-01-02").
 
         Returns:
-        X and y: torch.Tensor.
+        X and y: np.ndarray.
         """
         if isinstance(date, datetime):
             date = date.strftime("%Y-%m-%d")

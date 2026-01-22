@@ -1,5 +1,6 @@
 # data/fake_data.py
 
+import pickle
 import numpy as np
 import pandas as pd
 
@@ -40,6 +41,10 @@ def make_fake_parquet(
 
 if __name__ == "__main__":
     make_fake_parquet("data/fake_data.parquet")
+    
+    features = ["f1", "f2", "f3"]
+    with open("data/fake.pkl", "wb") as f:
+        pickle.dump(features, f)
 
 
 # end of data/fake_data.py
