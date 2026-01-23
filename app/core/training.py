@@ -1,76 +1,158 @@
 # app/core/training.py
 
-from typing import Any, Dict
+from tqdm import tqdm
+from datetime import datetime
 
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 
-from core.logger import setup_logger
-from core.registry import LOSSES_REGISTRY, MODELS_REGISTRY
-
+from app.core.logger import setup_logger
+from app.loader.loaddata import LoadData
 logger = setup_logger(__name__)
 
 
 class Trainer:
     def __init__(
         self,
-        loader: DataLoader,
+        model: torch.nn.Module,
+        loss_fn: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        train_loader: LoadData,
+        valid_loader: LoadData,
         device: torch.device,
-        loss_name: str,
-        loss_params: Dict[str, Any],
-        model_name: str,
-        model_params: Dict[str, Any],
-        optimizer_class: type,
-        optimizer_params: Dict[str, Any],
+        writer: SummaryWriter=None,
+        scheduler: torch.optim.lr_scheduler._LRScheduler=None,
+        early_stop_cfg: dict=None
     ):
-        self.loader = loader
-        self.device = device
+        self.Model = model
+        self.Loss = loss_fn
+        self.Optimizer = optimizer
+        self.TrainLoader = train_loader
+        self.ValidLoader = valid_loader
+        self.Device = device
+        self.Writer = writer
+        self.Scheduler = scheduler
+        self.EarlyStopCfg = early_stop_cfg or {}
 
-        # ===== losses =====
-        if loss_name not in LOSSES_REGISTRY:
-            raise KeyError(f"Loss '{loss_name}' not registered.")
+        self.patience = self.EarlyStopCfg.get("patience", 10)
+        self.monitor = self.EarlyStopCfg.get("monitor", "val_loss")
+        self.best_val_loss = float("inf")
+        self.patience_counter = 0
 
-        loss_cls = LOSSES_REGISTRY[loss_name]
-        self.loss = loss_cls(**loss_params)
+    def trainone(self) -> float:
+        self.Model.train()
         
-        # ===== models =====
-        if model_name not in MODELS_REGISTRY:
-            raise KeyError(f"Model '{model_name}' not registered.")
-
-        model_cls = MODELS_REGISTRY[model_name]
-        self.model = model_cls(**model_params).to(device)
-
-        # ===== optimizer =====
-        self.optimizer = optimizer_class(
-            self.model.parameters(), **optimizer_params
-        )
-
-    def training(self, epoch: int) -> float:
-        self.model.train()
+        batch_nums = 0
         total_loss = 0.0
-
-        for step, (x, y) in enumerate(self.loader):
-            x = x.to(self.device)
-            y = y.to(self.device)
-
-            y_pred = self.model(x)
-            loss = self.loss(y_pred, y)
-
-            self.optimizer.zero_grad()
+        for d, X, y in tqdm(self.TrainLoader, desc="日期进度"):
+            X = X.to(self.Device)
+            y = y.to(self.Device)
+            
+            self.Optimizer.zero_grad()
+            ypre = self.Model(X)
+            loss = self.Loss(ypre, y)
+            if torch.isnan(loss) or torch.isinf(loss):
+                logger.warning(f"[Epoch {self.current_epoch}] batch loss is NaN or Inf, skip this batch, 日期: {d}.")
+                continue
+            
             loss.backward()
-            self.optimizer.step()
+            # torch.nn.utils.clip_grad_norm_(self.Model.parameters(), max_norm=1.0)
+            self.Optimizer.step()
 
+            batch_nums += 1
             total_loss += loss.item()
+            logger.debug(f"训练批次: {batch_nums}, loss: {loss.item():.4f}, 日期: {d}.")
 
-            if step % 50 == 0:
-                logger.info(
-                    f"[Epoch {epoch} | Step {step}] loss={loss.item():.6f}"
-                )
-        
-        avg_loss = total_loss / len(self.loader)
-        logger.info(f"[Epoch {epoch}] avg_loss={avg_loss:.6f}.")
+        avg_loss = total_loss / max(batch_nums, 1)
+
+        # TensorBoard
+        if self.Writer is not None and avg_loss == avg_loss:
+            self.Writer.add_scalar("Loss/Train", avg_loss, self.current_epoch)
+            self.Writer.add_scalar("Learning_Rate", self.Optimizer.param_groups[0]["lr"], self.current_epoch)
+        logger.info(f"[Epoch {self.current_epoch}] 训练集平均损失: {avg_loss:.4f}.")
         
         return avg_loss
+
+    def validate(self) -> float:
+        self.Model.eval()
+
+        batch_nums = 0
+        total_loss = 0.0
+        with torch.no_grad():
+            for d, X, y in tqdm(self.ValidLoader, desc="日期进度"):
+                X = X.to(self.Device)
+                y = y.to(self.Device)
+                
+                ypre = self.Model(X)
+                loss = self.Loss(ypre, y)
+                if torch.isnan(loss) or torch.isinf(loss):
+                    logger.warning(f"[Epoch {self.current_epoch}] batch loss is NaN or Inf, skip this batch, 日期: {d}.")
+                    continue
+                
+                batch_nums += 1
+                total_loss += loss.item()
+                logger.debug(f"验证批次: {batch_nums}, loss: {loss.item():.4f}, 日期: {d}.")
+
+        avg_loss = total_loss / max(batch_nums, 1)
+        
+        # TensorBoard
+        if self.Writer is not None and avg_loss == avg_loss:
+            self.Writer.add_scalar("Loss/Valid", avg_loss, self.current_epoch)
+        logger.info(f"[Epoch {self.current_epoch}] 验证集平均损失: {avg_loss:.4f}.")
+        
+        return avg_loss
+
+    def savesota(self, val_loss) -> str:
+        now = datetime.now().strftime("%Y%m%d_%H%M%S")
+        model_name = getattr(self.Model, "__class__", None)
+        model_name = model_name.__name__ if model_name else "Model"
+        loss_name = getattr(self.Loss, "__class__", None)
+        loss_name = loss_name.__name__ if loss_name else "Loss"
+
+        path = f"{model_name}_{loss_name}_{now}.pth"
+        torch.save(self.Model, path)
+        # torch.save(self.Model.state_dict(), path)
+        logger.info(f"* 保存最优模型 -> {path} *.")
+
+        self.best_val_loss = val_loss
+        self.patience_counter = 0
+
+        return path
+
+    def training(self, epochs: int) -> str:
+        self.current_epoch = 0
+        best_model_path = None
+        for epoch in tqdm(range(epochs), desc="训练进度"):
+            self.current_epoch = epoch
+            logger.info(f"[Epoch {epoch+1}/{epochs}] 开始训练......")
+
+            train_loss = self.trainone()
+            valid_loss = self.validate()
+
+            logger.info(
+                f"第 {epoch+1} / {epochs} 轮训练完成 | "
+                f"训练集平均损失: {train_loss:.6f} | 验证集平均损失: {valid_loss:.6f}."
+            )
+
+            # Scheduler step
+            if self.Scheduler is not None:
+                self.Scheduler.step()
+
+            # Early Stop
+            if valid_loss < self.best_val_loss:
+                best_model_path = self.savesota(valid_loss)
+            else:
+                self.patience_counter += 1
+                if self.patience_counter >= self.patience:
+                    logger.info(f"Early stopping triggered at epoch {epoch+1}.")
+                    break
+        
+        return best_model_path
+
+    def debug(self, epochs: int) -> None:
+        for i in range(epochs):
+            print(f"[Epoch {i}].")
+        return None
 
 
 # end of app/core/training.py

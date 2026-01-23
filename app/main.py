@@ -138,8 +138,8 @@ def main():
         logger.info(f"{k}: {v}")
     logger.info("=" * 50)
     
-    trainer.debug(epochs=cfg["train"]["epochs"])
-    # trainer.training(epochs=cfg["train"]["epochs"])
+    # trainer.debug(epochs=cfg["train"]["epochs"])
+    trainer.training(epochs=cfg["train"]["epochs"])
     del ValidLoader, TrainLoader
     
     # --------------------------------------------------
