@@ -9,7 +9,7 @@ np.random.seed(42)
 
 def make_fake_parquet(
     path: str,
-    dates=("2020-01-02", "2020-01-03"),
+    dates=pd.date_range("2020-01-02", "2020-01-03", freq="D"),
     stocks=("A", "B", "C"),
     intervals=range(5),
     features=("f1", "f2", "f3"),

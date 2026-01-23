@@ -16,7 +16,7 @@ data:
     label:
       - y
     features: fake.pkl
-    filter: date >= 20200103
+    filter: "date >= '2020-01-03'"
 
   # testdata:
   #   file: fake_data.parquet

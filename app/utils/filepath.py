@@ -12,31 +12,38 @@ def get_proj_root():
     )
 
 
-def get_data_path(subdir=""):
+def get_cfgs_path(filename=""):
+    """Get the path to the configs directory (creates directory automatically if it doesn't exist)"""
+    cfgs_dir = os.path.join(get_proj_root(), "cfgs")
+    os.makedirs(cfgs_dir, exist_ok=True)  # Ensure directory exists
+    return os.path.join(cfgs_dir, filename)
+
+
+def get_data_path(filename=""):
     """Get the path to the data directory (creates directory automatically if it doesn't exist)"""
-    data_dir = os.path.join(get_proj_root(), "data", subdir)
+    data_dir = os.path.join(get_proj_root(), "data")
     os.makedirs(data_dir, exist_ok=True)  # Ensure directory exists
-    return data_dir
+    return os.path.join(data_dir, filename)
 
 
-def get_imgs_path():
+def get_imgs_path(subdir=""):
     """Get the path to the images directory"""
-    imgs_dir = os.path.join(get_proj_root(), "imgs")
+    imgs_dir = os.path.join(get_proj_root(), "imgs", subdir)
     os.makedirs(imgs_dir, exist_ok=True)  # Ensure directory exists
     return imgs_dir
 
 
 # Similarly, you can define get_tables_path, get_logs_path, etc.
-def get_tabs_path():
+def get_tabs_path(subdir=""):
     """Get the path to the tables directory"""
-    tabs_dir = os.path.join(get_proj_root(), "tabs")
+    tabs_dir = os.path.join(get_proj_root(), "tabs", subdir)
     os.makedirs(tabs_dir, exist_ok=True)  # Ensure directory exists
     return tabs_dir
 
 
-def get_logs_path():
+def get_logs_path(subdir=""):
     """Get the path to the logs directory"""
-    logs_dir = os.path.join(get_proj_root(), "logs")
+    logs_dir = os.path.join(get_proj_root(), "logs", subdir)
     os.makedirs(logs_dir, exist_ok=True)  # Ensure directory exists
     return logs_dir
 
