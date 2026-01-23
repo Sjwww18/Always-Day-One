@@ -48,8 +48,10 @@ loss:
 # ======================
 train:
   epochs: 2
-  lr: 1e-3
+  lr: 0.001
   device: cpu
+  record: True
+  logdir: tensorboard
 
 
 # ======================
