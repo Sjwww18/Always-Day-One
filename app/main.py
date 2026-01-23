@@ -40,7 +40,7 @@ def main():
     config_path = get_cfgs_path(args.config)
     logger.info(f"Loading config from: {config_path}.")
 
-    with open(config_path, "r") as f:
+    with open(config_path, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
     
     # --------------------------------------------------
@@ -108,9 +108,18 @@ def main():
     if cfg["train"].get("record", False):
         logdir = cfg["train"].get("logdir", "tensorboard")
         Writer = SummaryWriter(log_dir=get_logs_path(logdir))
-    LR = float(cfg["train"]["lr"])
-    Optimizer = torch.optim.Adam(Model.parameters(), lr=LR)
     
+    Model = Model.to(Device)
+    Lr = float(cfg["train"]["lr"])
+    Optimizer = torch.optim.Adam(Model.parameters(), lr=Lr)
+
+    Scheduler = cfg["train"].get("scheduler", None)
+    if Scheduler is not None:
+        Scheduler = torch.optim.lr_scheduler.__dict__[Scheduler["name"]](
+            Optimizer, **Scheduler["params"]
+        )
+    EarlyStopCfg = cfg["train"].get("early_stop", {})
+
     trainer = Trainer(
         model=Model,
         loss_fn=Loss,
@@ -118,7 +127,9 @@ def main():
         train_loader=TrainLoader,
         valid_loader=ValidLoader,
         device=Device,
-        writer=Writer
+        writer=Writer,
+        scheduler=Scheduler,
+        early_stop_cfg=EarlyStopCfg
     )
     
     logger.info("=" * 50)

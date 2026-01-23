@@ -52,6 +52,14 @@ train:
   device: cpu
   record: True
   logdir: tensorboard
+  # scheduler:
+  #   name: StepLR
+  #   params:
+  #     step_size: 10
+  #     gamma: 0.1
+  early_stop:
+    patience: 3
+    monitor: val_loss
 
 
 # ======================
