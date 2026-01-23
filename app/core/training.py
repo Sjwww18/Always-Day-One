@@ -45,8 +45,8 @@ class Trainer:
         batch_nums = 0
         total_loss = 0.0
         for d, X, y in tqdm(self.TrainLoader, desc="日期进度"):
-            X = X.to(self.Device)
-            y = y.to(self.Device)
+            X = torch.from_numpy(X).to(self.Device)
+            y = torch.from_numpy(y).to(self.Device)
             
             self.Optimizer.zero_grad()
             ypre = self.Model(X)
@@ -80,8 +80,8 @@ class Trainer:
         total_loss = 0.0
         with torch.no_grad():
             for d, X, y in tqdm(self.ValidLoader, desc="日期进度"):
-                X = X.to(self.Device)
-                y = y.to(self.Device)
+                X = torch.from_numpy(X).to(self.Device)
+                y = torch.from_numpy(y).to(self.Device)
                 
                 ypre = self.Model(X)
                 loss = self.Loss(ypre, y)
@@ -103,13 +103,15 @@ class Trainer:
         return avg_loss
 
     def savesota(self, val_loss) -> str:
+        from app.utils.filepath import get_sota_path
+
         now = datetime.now().strftime("%Y%m%d_%H%M%S")
         model_name = getattr(self.Model, "__class__", None)
         model_name = model_name.__name__ if model_name else "Model"
         loss_name = getattr(self.Loss, "__class__", None)
         loss_name = loss_name.__name__ if loss_name else "Loss"
 
-        path = f"{model_name}_{loss_name}_{now}.pth"
+        path = get_sota_path(f"{model_name}_{loss_name}_{now}.pth")
         torch.save(self.Model, path)
         # torch.save(self.Model.state_dict(), path)
         logger.info(f"* 保存最优模型 -> {path} *.")
