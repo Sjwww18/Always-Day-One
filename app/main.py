@@ -46,7 +46,7 @@ def main():
     # --------------------------------------------------
     # Load feature list
     # --------------------------------------------------
-    feature_file = cfg["data"]["traindata"]["features"]
+    feature_file = cfg["data"]["features"]
     feature_path = get_data_path(feature_file)
     logger.info(f"Loading features from: {feature_path}.")
     

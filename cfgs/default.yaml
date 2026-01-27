@@ -8,21 +8,20 @@ data:
     file: fake_data.parquet
     label:
       - y
-    features: fake.pkl
     filter: null
 
   validdata:
     file: fake_data.parquet
     label:
       - y
-    features: fake.pkl
     filter: "date >= '2020-01-03'"
 
   # testdata:
   #   file: fake_data.parquet
   #   label: []
-  #   features: fake.pkl
   #   filter: null
+
+  features: fake.pkl
 
 
 # ======================
