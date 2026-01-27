@@ -13,9 +13,9 @@ data:
     filter: null
     # filter: "date >= '2020-01-03'"
 
-  # testdata:
-  #   file: fake_data.parquet
-  #   filter: null
+  testdata:
+    file: fake_data.parquet
+    filter: null
 
   label:
     - y
