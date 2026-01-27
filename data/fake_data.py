@@ -9,9 +9,9 @@ np.random.seed(42)
 
 def make_fake_parquet(
     path: str,
-    dates=pd.date_range("2020-01-02", "2020-01-03", freq="D"),
+    dates=pd.date_range("2020-01-02", "2020-01-10", freq="D"),
     stocks=("A", "B", "C"),
-    intervals=range(5),
+    intervals=range(51),
     features=("f1", "f2", "f3"),
     label=("y",),
 ):
@@ -45,6 +45,10 @@ if __name__ == "__main__":
     features = ["f1", "f2", "f3"]
     with open("data/fake.pkl", "wb") as f:
         pickle.dump(features, f)
+
+    EqtyData = ["A", "B", "C"]
+    with open("data/EqtyData.pkl", "wb") as f:
+        pickle.dump(EqtyData, f)
 
 
 # end of data/fake_data.py
