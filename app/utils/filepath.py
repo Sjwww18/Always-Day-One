@@ -58,6 +58,8 @@ def get_test_path(filename=""):
     """Get the path to the test directory"""
     test_dir = os.path.join(get_proj_root(), "test")
     os.makedirs(test_dir, exist_ok=True)  # Ensure directory exists
+    if filename.endswith(".pth"):
+        filename = filename.replace(".pth", ".pkl")
     return os.path.join(test_dir, filename)
 
 
