@@ -33,13 +33,6 @@ def get_imgs_path(subdir=""):
     return imgs_dir
 
 
-def get_sota_path(filename=""):
-    """Get the path to the sota directory"""
-    sota_dir = os.path.join(get_proj_root(), "sota")
-    os.makedirs(sota_dir, exist_ok=True)  # Ensure directory exists
-    return os.path.join(sota_dir, filename)
-
-
 def get_logs_path(subdir=""):
     """Get the path to the logs directory"""
     logs_dir = os.path.join(get_proj_root(), "logs", subdir)
@@ -47,7 +40,13 @@ def get_logs_path(subdir=""):
     return logs_dir
 
 
-# Similarly, you can define get_tables_path, get_logs_path, etc.
+def get_sota_path(filename=""):
+    """Get the path to the sota directory"""
+    sota_dir = os.path.join(get_proj_root(), "sota")
+    os.makedirs(sota_dir, exist_ok=True)  # Ensure directory exists
+    return os.path.join(sota_dir, filename)
+
+
 def get_tabs_path(subdir=""):
     """Get the path to the tables directory"""
     tabs_dir = os.path.join(get_proj_root(), "tabs", subdir)
