@@ -54,4 +54,11 @@ def get_tabs_path(subdir=""):
     return tabs_dir
 
 
+def get_test_path(filename=""):
+    """Get the path to the test directory"""
+    test_dir = os.path.join(get_proj_root(), "test")
+    os.makedirs(test_dir, exist_ok=True)  # Ensure directory exists
+    return os.path.join(test_dir, filename)
+
+
 # end of app/utils/filepath.py
