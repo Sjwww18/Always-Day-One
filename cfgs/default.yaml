@@ -6,21 +6,19 @@
 data:
   traindata:
     file: fake_data.parquet
-    label:
-      - y
     filter: null
 
   validdata:
     file: fake_data.parquet
-    label:
-      - y
-    filter: "date >= '2020-01-03'"
+    filter: null
+    # filter: "date >= '2020-01-03'"
 
   # testdata:
   #   file: fake_data.parquet
-  #   label: []
   #   filter: null
 
+  label:
+    - y
   features: fake.pkl
 
 
@@ -46,7 +44,7 @@ loss:
 # Training configuration
 # ======================
 train:
-  epochs: 2
+  epochs: 4
   lr: 0.001
   device: cpu
   record: True
@@ -57,7 +55,7 @@ train:
   #     step_size: 10
   #     gamma: 0.1
   early_stop:
-    patience: 3
+    patience: 1
     monitor: val_loss
 
 

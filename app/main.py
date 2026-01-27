@@ -83,7 +83,7 @@ def main():
     valid_cfg = cfg["data"]["validdata"]
     ValidLoader = LoadData(
         path=get_data_path(valid_cfg["file"]),
-        label=valid_cfg["label"],
+        label=cfg["data"]["label"],
         features=features,
         dffilter=valid_cfg["filter"]
     )
@@ -92,7 +92,7 @@ def main():
     train_cfg = cfg["data"]["traindata"]
     TrainLoader = LoadData(
         path=get_data_path(train_cfg["file"]),
-        label=train_cfg["label"],
+        label=cfg["data"]["label"],
         features=features,
         dffilter=train_cfg["filter"]
     )
