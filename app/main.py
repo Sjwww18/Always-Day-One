@@ -149,7 +149,8 @@ def main() -> None:
     # trainer.debug(epochs=cfg["train"]["epochs"])
     ModelName = trainer.training(epochs=cfg["train"]["epochs"])
     ModelPath = get_sota_path(ModelName)
-    del ValidLoader, TrainLoader
+    del ValidLoader, TrainLoader, trainer, Optimizer, Scheduler, Loss
+    torch.cuda.empty_cache()
     
     # --------------------------------------------------
     # Evaluation
