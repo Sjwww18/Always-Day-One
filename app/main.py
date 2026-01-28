@@ -1,5 +1,6 @@
 # app/main.py
 
+import json
 import yaml
 import pickle
 import argparse
@@ -25,10 +26,9 @@ def parse_args():
     return parser.parse_args()
 
 
-def save_config(cfg: dict, path: str) -> None:
-    """Save config to file."""
-    with open(path, "w") as f:
-        yaml.safe_dump(cfg, f, sort_keys=False, allow_unicode=True)
+def save_result(result: dict, path: str) -> None:
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(result, f, indent=2, ensure_ascii=False)
 
 
 def main() -> None:
@@ -149,7 +149,6 @@ def main() -> None:
     # trainer.debug(epochs=cfg["train"]["epochs"])
     ModelName = trainer.training(epochs=cfg["train"]["epochs"])
     ModelPath = get_sota_path(ModelName)
-    cfg["result"]["model"] = ModelName
     del ValidLoader, TrainLoader
     
     # --------------------------------------------------
@@ -187,8 +186,11 @@ def main() -> None:
     ComboPath = get_test_path(ComboName)
     COMBO.to_pickle(ComboPath)
     
-    cfg["result"]["combo"] = ComboName
-    save_config(cfg, config_path)
+    result = {
+        "combo": ComboName,
+        "model": ModelName,
+    }
+    save_result(result, get_test_path(ComboName.replace(".pkl", ".json")))
     del TestLoader
 
     if Writer is not None:
