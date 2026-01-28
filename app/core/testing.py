@@ -44,7 +44,7 @@ class Tester:
                 ypre = self.Model(X)
                 if isinstance(ypre, torch.Tensor):
                     ypre = ypre.cpu().numpy()
-                ypre = ypre.reshape(51, -1)  # 51 interval × 5171 stock
+                ypre = ypre.reshape(-1, 51).T  # 51 interval × 5171 stock
                 Result.append((d, ypre))
 
         return Result
