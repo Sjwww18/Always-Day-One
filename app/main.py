@@ -193,6 +193,16 @@ def main() -> None:
     save_result(result, get_test_path(ComboName.replace(".pkl", ".json")))
     del TestLoader
 
+    for name, param in Model.named_parameters():
+        if param.requires_grad:
+            logger.debug(f"参数名称: {name}, 参数形状: {param.shape}.")
+            logger.debug(f"最大值: {param.data.max().item():.4f}.")
+            logger.debug(f"最小值: {param.data.min().item():.4f}.")
+            logger.debug(f"均值: {param.data.mean().item():.4f}.")
+            logger.debug(f"标准差: {param.data.std().item():.4f}.")
+        else:
+            logger.debug(f"参数名称: {name}, 参数形状: {param.shape}, 未训练.")
+
     if Writer is not None:
         Writer.close()
     logger.info("Training finished.")
