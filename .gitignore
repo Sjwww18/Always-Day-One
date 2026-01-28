@@ -3,6 +3,7 @@ __pycache__/
 logs/
 sota/
 spts/
+test/
 script.py
 PRIVACY.md
 .env
