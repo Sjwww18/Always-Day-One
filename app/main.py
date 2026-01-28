@@ -7,6 +7,9 @@ import argparse
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
+from app.utils.filepath import (
+    get_cfgs_path, get_data_path, get_logs_path, get_sota_path, get_test_path
+    )
 from app.core.logger import setup_logger
 logger = setup_logger(__name__)
 
@@ -22,7 +25,13 @@ def parse_args():
     return parser.parse_args()
 
 
-def main():
+def save_config(cfg: dict, path: str) -> None:
+    """Save config to file."""
+    with open(path, "w") as f:
+        yaml.safe_dump(cfg, f, sort_keys=False, allow_unicode=True)
+
+
+def main() -> None:
     """# Fight !!!"""
     args = parse_args()
 
@@ -35,7 +44,6 @@ def main():
     # --------------------------------------------------
     # Resolve config path
     # --------------------------------------------------
-    from app.utils.filepath import get_cfgs_path, get_data_path, get_logs_path
 
     config_path = get_cfgs_path(args.config)
     logger.info(f"Loading config from: {config_path}.")
@@ -139,23 +147,57 @@ def main():
     logger.info("=" * 50)
     
     # trainer.debug(epochs=cfg["train"]["epochs"])
-    trainer.training(epochs=cfg["train"]["epochs"])
+    ModelName = trainer.training(epochs=cfg["train"]["epochs"])
+    ModelPath = get_sota_path(ModelName)
+    cfg["result"]["model"] = ModelName
     del ValidLoader, TrainLoader
     
     # --------------------------------------------------
     # Evaluation
     # --------------------------------------------------
-    logger.info("Evaluating the model......")
+    from app.core.testing import Tester
 
-    pass
+    logger.info("Evaluating the model......")
+    logger.info("Loading testing data......") 
+    test_cfg = cfg["data"]["testdata"]
     
+    TestLoader = LoadData(
+        path=get_data_path(test_cfg["file"]),
+        label=[],
+        features=features,
+        dffilter=test_cfg["filter"]
+    )
+    
+    logger.info(f"Loading sota model: {ModelPath}......")
+    Model = torch.load(ModelPath).to(Device)
+    
+    logger.info("Testing the model......")
+    tester = Tester(
+        model=Model,
+        loss_fn=None,
+        test_loader=TestLoader,
+        device=Device,
+        writer=None,
+        EqtyPath=cfg["data"]["eqtydata"]
+    )
+
+    COMBO = tester.postprocess(tester.testing())
+    
+    ComboName = ModelName.replace(".pth", ".pkl")
+    ComboPath = get_test_path(ComboName)
+    COMBO.to_pickle(ComboPath)
+    
+    cfg["result"]["combo"] = ComboName
+    save_config(cfg, config_path)
+    del TestLoader
+
     if Writer is not None:
         Writer.close()
     logger.info("Training finished.")
     # --------------------------------------------------
     # Exiting
     # --------------------------------------------------
-
+    return None
 
 if __name__ == "__main__":
     main()
