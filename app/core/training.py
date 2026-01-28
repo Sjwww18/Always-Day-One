@@ -111,7 +111,8 @@ class Trainer:
         loss_name = getattr(self.Loss, "__class__", None)
         loss_name = loss_name.__name__ if loss_name else "Loss"
 
-        path = get_sota_path(f"{model_name}_{loss_name}_{now}.pth")
+        filename = f"{model_name}_{loss_name}_{now}.pth"
+        path = get_sota_path(filename)
         torch.save(self.Model, path)
         # torch.save(self.Model.state_dict(), path)
         logger.info(f"* 保存最优模型 -> {path} *.")
@@ -119,11 +120,11 @@ class Trainer:
         self.best_val_loss = val_loss
         self.patience_counter = 0
 
-        return path
+        return filename
 
     def training(self, epochs: int) -> str:
         self.current_epoch = 0
-        best_model_path = None
+        best_model_name = None
         for epoch in tqdm(range(epochs), desc="训练进度"):
             self.current_epoch = epoch
             logger.info(f"[Epoch {epoch+1}/{epochs}] 开始训练......")
@@ -142,14 +143,14 @@ class Trainer:
 
             # Early Stop
             if valid_loss < self.best_val_loss:
-                best_model_path = self.savesota(valid_loss)
+                best_model_name = self.savesota(valid_loss)
             else:
                 self.patience_counter += 1
                 if self.patience_counter >= self.patience:
                     logger.info(f"Early stopping triggered at epoch {epoch+1}.")
                     break
         
-        return best_model_path
+        return best_model_name
 
     def debug(self, epochs: int) -> None:
         for i in range(epochs):
