@@ -20,6 +20,7 @@ data:
   label:
     - y
   features: fake.pkl
+  eqtydata: EqtyData.pkl
 
 
 # ======================
@@ -60,7 +61,15 @@ train:
 
 
 # ======================
-# Metric
+# Result configuration
+# ======================
+result:
+  file: null
+  score: null
+
+
+# ======================
+# Metric configuration
 # ======================
 # metric:
 #   name: rmse
