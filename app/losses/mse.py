@@ -2,6 +2,7 @@
 
 import torch
 import torch.nn as nn
+
 from app.core.registry import register_losses
 
 
@@ -14,8 +15,8 @@ class MSELoss(nn.Module):
     def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
         """
         Args:
-            y_pred: shape (N, 1) or (N,)
-            y_true: shape (N, 1) or (N,)
+            y_pred: shape (N,) or (N, 1)
+            y_true: shape (N,) or (N, 1)
         Returns:
             scalar loss tensor
         """
