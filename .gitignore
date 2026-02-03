@@ -4,6 +4,7 @@ logs/
 sota/
 spts/
 test/
+dev.py
 script.py
 PRIVACY.md
 .env
