@@ -3,7 +3,14 @@
 import torch.nn as nn
 from typing import Any, Callable
 
-from app.core.registry import LOSSES_REGISTRY, METRIC_REGISTRY, MODELS_REGISTRY
+from app.core.registry import LOADER_REGISTRY, LOSSES_REGISTRY, METRIC_REGISTRY, MODELS_REGISTRY
+
+
+def build_loader(cfg: dict, **extra_kwargs) -> Any:
+    cls = LOADER_REGISTRY[cfg["name"]]
+    params = cfg.get("params", {})
+    params.update(extra_kwargs)
+    return cls(**params)
 
 
 def build_models(cfg: dict, **extra_kwargs) -> nn.Module:

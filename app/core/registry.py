@@ -1,11 +1,21 @@
 # app/core/registry.py
 
 import torch.nn as nn
-from typing import Type, Callable, Dict
+from typing import Any, Type, Callable, Dict
 
+LOADER_REGISTRY: Dict[str, Callable] = {}
 LOSSES_REGISTRY: Dict[str, Callable] = {}
 METRIC_REGISTRY: Dict[str, Callable] = {}
 MODELS_REGISTRY: Dict[str, Callable] = {}
+
+
+def register_loader(name: str) -> Callable[[Type[Any]], Type[Any]]:
+    def wrapper(cls):
+        if name in LOADER_REGISTRY:
+            raise KeyError(f"Loader '{name}' already registered.")
+        LOADER_REGISTRY[name] = cls
+        return cls
+    return wrapper
 
 
 def register_losses(name: str) -> Callable[[Type[nn.Module]], Type[nn.Module]]:
