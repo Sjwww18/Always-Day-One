@@ -1,21 +1,22 @@
 # app/core/build.py
 
 import torch.nn as nn
-from typing import Any, Callable
+from typing import Any, Callable, List
 
 from app.core.registry import LOADER_REGISTRY, LOSSES_REGISTRY, METRIC_REGISTRY, MODELS_REGISTRY
 
 
-def build_loader(cfg: dict, **extra_kwargs) -> Any:
+def build_loader(cfg: dict, features: List[str], label: List[str]) -> Any:
     cls = LOADER_REGISTRY[cfg["name"]]
-    params = cfg.get("params", {})
-    params.update(extra_kwargs)
+    params = cfg.get("params", {}).copy()
+    params["features"] = features
+    params["label"] = label
     return cls(**params)
 
 
 def build_models(cfg: dict, **extra_kwargs) -> nn.Module:
     cls = MODELS_REGISTRY[cfg["name"]]
-    params = cfg.get("params", {})
+    params = cfg.get("params", {}).copy()
     params.update(extra_kwargs)
     return cls(**params)
 
