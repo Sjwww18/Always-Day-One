@@ -152,10 +152,10 @@ class Trainer:
         
         return best_model_name
 
-    def debug(self, epochs: int) -> None:
+    def debug(self, epochs: int) -> str:
         for i in range(epochs):
             print(f"[Epoch {i}].")
-        return None
+        return f"Debug_{epochs}epochs.pth"
 
 
 # end of app/core/training.py
