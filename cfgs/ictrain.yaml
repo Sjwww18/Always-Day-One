@@ -1,0 +1,91 @@
+# cfgs/ictrain.yaml
+
+# ======================
+# Data configuration
+# ======================
+data:
+  trainloader:
+    name: interval
+    params:
+      file: fake_data.parquet
+      fillna: zero
+      dffilter: null
+      normalize: zscore
+
+  validloader:
+    name: interval
+    params:
+      file: fake_data.parquet
+      fillna: zero
+      dffilter: "date >= '2020-01-03'"
+      normalize: zscore
+
+  testloader:
+    name: interval
+    params:
+      file: fake_data.parquet
+      fillna: zero
+      dffilter: null
+      normalize: zscore
+
+  label:
+    - y
+  features: fake.pkl
+  eqtydata: EqtyData.pkl
+
+
+# ======================
+# Model configuration
+# ======================
+model:
+  name: icmlp
+  params:
+    # feature_dim: 450
+    hidden_dims: [32]
+    dropout: 0.1
+    init: xavier
+
+# ======================
+# Loss configuration
+# ======================
+loss:
+  name: pearsonic
+  params: {}
+
+
+# ======================
+# Training configuration
+# ======================
+train:
+  epochs: 1
+  lr: 0.001
+  device: cpu
+  record: True
+  logdir: tensorboard
+  # scheduler:
+  #   name: StepLR
+  #   params:
+  #     step_size: 10
+  #     gamma: 0.1
+  early_stop:
+    patience: 1
+    monitor: val_loss
+
+
+# ======================
+# Result configuration
+# ======================
+result:
+  combo: null
+  model: MLPModel_MSELoss_20260128_145143.pth
+
+
+# ======================
+# Metric configuration
+# ======================
+metric:
+  name: null
+  params: {}
+
+
+# end of cfgs/ictrain.yaml
