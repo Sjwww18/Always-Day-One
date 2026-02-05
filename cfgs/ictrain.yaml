@@ -88,4 +88,13 @@ metric:
   params: {}
 
 
+# ======================
+# Reserved configuration
+# ======================
+ic:
+  mask_source: label_nan  # 当前实现
+  future_shift: 1         # 未来 horizon
+  weight: null            # 未来 sample weighting
+
+
 # end of cfgs/ictrain.yaml
