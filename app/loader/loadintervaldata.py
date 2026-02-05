@@ -1,0 +1,98 @@
+# app/loader/loadintervaldata.py
+
+import numpy as np
+import pandas as pd
+from datetime import datetime
+from typing import Iterable, List, Optional, Tuple
+
+from app.utils.helper import zscore
+from app.core.registry import register_loader
+from app.utils.filepath import get_data_path
+
+
+@register_loader("interval")
+class IntervalLoader:
+    """
+    Interval-level cross-sectional loader.
+
+    One batch corresponds to one (date, interval):
+        X: [N_stock, F_feature]
+        y: [N_stock, 1] or None (test)
+    """
+    def __init__(
+        self,
+        file: str,
+        label: List[str],
+        features: List[str],
+        fillna: str="zero",
+        dffilter: Optional[str]=None,
+        normalize: Optional[str]=None
+    ):
+        path = get_data_path(file)
+        cols = ["date", "stock", "interval"] + features + label
+        df = pd.read_parquet(path, engine="pyarrow", columns=cols)
+
+        # ===== label / feature handling =====
+        self.label = label
+        self.features = features
+        self.fillna = fillna
+        self.normalize = normalize
+        
+        if dffilter is not None:
+            df = df.query(dffilter)
+
+        # ===== core data structure =====
+        # key: (date, interval) -> DataFrame
+        self.data = {
+            (d, itv): g
+            for (d, itv), g in df.groupby(["date", "interval"], sort=False)
+        }
+
+        self.keys = list(self.data.keys())
+        del df
+
+    def __len__(self) -> int:
+        return len(self.keys)
+
+    def __iter__(self) -> Iterable[Tuple[Tuple[datetime, int], np.ndarray, Optional[np.ndarray]]]:
+        for key in self.keys:
+            g = self.data[key]
+            X = g[self.features]
+            
+            # ===== nan handling =====
+            if self.fillna == "zero":
+                X = X.fillna(0.0).to_numpy(dtype="float32")
+            elif self.fillna == "mean":
+                X = X.fillna(X.mean(axis=0)).to_numpy(dtype="float32")
+            else:
+                X = X.to_numpy(dtype="float32")
+            
+            # ===== normalization =====
+            if self.normalize == "zscore":
+                X = zscore(X)
+
+            # ===== label =====            
+            if self.label:
+                y = g[self.label].to_numpy().reshape(-1, 1)
+            else:
+                y = None
+            
+            yield key, X, y
+
+    def get_batch(self, key: Tuple[datetime, int]) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+        date, interval = key
+        if isinstance(date, datetime):
+            date = date.strftime("%Y-%m-%d")
+        
+        g = self.data[(date, interval)]
+        X = g[self.features].to_numpy(dtype="float32")
+
+        if self.label:
+            y = g[self.label].to_numpy(dtype="float32").reshape(-1, 1)
+        else:
+            y = None
+
+        return X, y
+
+
+# end of app/loader/loadintervaldata.py
