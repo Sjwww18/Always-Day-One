@@ -18,6 +18,7 @@ class IntervalLoader:
     One batch corresponds to one (date, interval):
         X: [N_stock, F_feature]
         y: [N_stock, 1] or None (test)
+        mask: [N_stock, 1], 1 if label valid else 0
     """
     def __init__(
         self,
@@ -47,14 +48,13 @@ class IntervalLoader:
             (d, itv): g
             for (d, itv), g in df.groupby(["date", "interval"], sort=False)
         }
-
         self.keys = list(self.data.keys())
         del df
 
     def __len__(self) -> int:
         return len(self.keys)
 
-    def __iter__(self) -> Iterable[Tuple[Tuple[datetime, int], np.ndarray, Optional[np.ndarray]]]:
+    def __iter__(self) -> Iterable[Tuple[Tuple[datetime, int], np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]]:
         for key in self.keys:
             g = self.data[key]
             X = g[self.features]
@@ -73,13 +73,15 @@ class IntervalLoader:
 
             # ===== label =====            
             if self.label:
-                y = g[self.label].to_numpy().reshape(-1, 1)
+                y = g[self.label].to_numpy(dtype="float32").reshape(-1, 1)
+                mask = (~np.isnan(y)).astype("float32")
             else:
                 y = None
+                mask = None
             
-            yield key, X, y
+            yield key, X, y, mask
 
-    def get_batch(self, key: Tuple[datetime, int]) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+    def get_batch(self, key: Tuple[datetime, int]) -> Tuple[np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]:
         date, interval = key
         if isinstance(date, datetime):
             date = date.strftime("%Y-%m-%d")
@@ -89,10 +91,12 @@ class IntervalLoader:
 
         if self.label:
             y = g[self.label].to_numpy(dtype="float32").reshape(-1, 1)
+            mask = (~np.isnan(y)).astype("float32")
         else:
             y = None
+            mask = None
 
-        return X, y
+        return X, y, mask
 
 
 # end of app/loader/loadintervaldata.py
