@@ -44,15 +44,18 @@ class Trainer:
         
         batch_nums = 0
         total_loss = 0.0
-        for d, X, y in tqdm(self.TrainLoader, desc="日期进度"):
+        for key, X, y, mask in tqdm(self.TrainLoader, desc="日期进度"):
             X = torch.from_numpy(X).to(self.Device)
             y = torch.from_numpy(y).to(self.Device)
+            if mask is not None:
+                mask = torch.from_numpy(mask).to(self.Device)
             
             self.Optimizer.zero_grad()
             ypre = self.Model(X)
-            loss = self.Loss(ypre, y)
+            
+            loss = self.Loss(ypre, y, mask=mask)
             if torch.isnan(loss) or torch.isinf(loss):
-                logger.warning(f"[Epoch {self.current_epoch}] batch loss is NaN or Inf, skip this batch, 日期: {d}.")
+                logger.warning(f"[Epoch {self.current_epoch}] batch loss is NaN or Inf, skip this batch, key: {key}.")
                 continue
             
             loss.backward()
@@ -61,7 +64,7 @@ class Trainer:
 
             batch_nums += 1
             total_loss += loss.item()
-            logger.debug(f"训练批次: {batch_nums}, loss: {loss.item():.4f}, 日期: {d}.")
+            logger.debug(f"训练批次: {batch_nums}, loss: {loss.item():.4f}, key: {key}.")
 
         avg_loss = total_loss / max(batch_nums, 1)
 
@@ -79,19 +82,21 @@ class Trainer:
         batch_nums = 0
         total_loss = 0.0
         with torch.no_grad():
-            for d, X, y in tqdm(self.ValidLoader, desc="日期进度"):
+            for key, X, y, mask in tqdm(self.ValidLoader, desc="日期进度"):
                 X = torch.from_numpy(X).to(self.Device)
                 y = torch.from_numpy(y).to(self.Device)
+                if mask is not None:
+                    mask = torch.from_numpy(mask).to(self.Device)
                 
                 ypre = self.Model(X)
-                loss = self.Loss(ypre, y)
+                loss = self.Loss(ypre, y, mask=mask)
                 if torch.isnan(loss) or torch.isinf(loss):
-                    logger.warning(f"[Epoch {self.current_epoch}] batch loss is NaN or Inf, skip this batch, 日期: {d}.")
+                    logger.warning(f"[Epoch {self.current_epoch}] batch loss is NaN or Inf, skip this batch, key: {key}.")
                     continue
                 
                 batch_nums += 1
                 total_loss += loss.item()
-                logger.debug(f"验证批次: {batch_nums}, loss: {loss.item():.4f}, 日期: {d}.")
+                logger.debug(f"验证批次: {batch_nums}, loss: {loss.item():.4f}, key: {key}.")
 
         avg_loss = total_loss / max(batch_nums, 1)
         
