@@ -41,25 +41,25 @@ if __name__ == "__main__":
     features = load_features(feature_path)
     label = cfg["data"]["label"]
 
-    logger.info(f"Loading features from: {feature_path}. Number of features: {len(features)}.")
+    logger.info(f"Loading features from: {feature_path}. Number of features: {len(features)}. Label: {label}.")
 
-    # ========== Building loader/losses/metric/models ==========
+    # ========== Building losses/metric/models ==========
     import app.losses
     import app.metric
     import app.models
-    from app.core.build import build_losses, build_models, build_metric
+    from app.core.build import build_losses, build_metric, build_models
     
     logger.info("=" * 50)
-    logger.info("3. Building models / losses / metrics ......")
+    logger.info("3. Building losses / metric / models ......")
         
     Loss = build_losses(cfg["loss"])
     logger.info(f"Loss function: {Loss}.")
     
-    Model = build_models(cfg["model"], feature_dim=len(features))
-    logger.info(f"Model:\n{Model}.")
-    
     # Metric = build_metric(cfg["metric"])
     # logger.info(f"Metric: {Metric}.")
+    
+    Model = build_models(cfg["model"], feature_dim=len(features))
+    logger.info(f"Model:\n{Model}.")
 
     # ========== Loading data ==========
     import app.loader
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     
     # ========== Training ==========
     from app.core.training import Trainer
-    from app.utils.filepath import get_logs_path, get_sota_path
+    from app.utils.filepath import get_logs_path
 
     logger.info("=" * 50)
     logger.info("5. Training the model......")
@@ -125,7 +125,6 @@ if __name__ == "__main__":
     
     # ModelName = trainer.debug(epochs=cfg["train"]["epochs"])
     ModelName = trainer.training(epochs=cfg["train"]["epochs"])
-    ModelPath = get_sota_path(ModelName)
 
     # ========== Clearing ==========
     logger.info("=" * 50)
@@ -137,9 +136,9 @@ if __name__ == "__main__":
     
     # ========== Output ==========
     logger.info("=" * 50)
-    logger.info("7. Output best model path......")
+    logger.info("7. Output best model name......")
 
-    print(ModelPath)
+    print(ModelName)
     
     logger.info("=" * 50)
     logger.info("8. All done!")
