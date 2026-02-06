@@ -80,6 +80,9 @@ class IntervalLoader:
                 mask = None
             
             yield key, X, y, mask
+    
+    def process(self, y: np.ndarray) -> np.ndarray:
+        return y.reshape(1, -1)  # 1 interval × 5171 stock
 
     def get_batch(self, key: Tuple[datetime, int]) -> Tuple[np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]:
         date, interval = key
