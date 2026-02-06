@@ -110,9 +110,22 @@ if __name__ == "__main__":
     logger.info("=" * 50)
     logger.info("6. Clearing GPU memory......")
     
+    for name, param in Model.named_parameters():
+        if param.requires_grad:
+            logger.info(f"参数名称: {name}, 参数形状: {param.shape}.")
+            logger.info(f"最大值: {param.data.max().item():.4f}.")
+            logger.info(f"最小值: {param.data.min().item():.4f}.")
+            logger.info(f"均值: {param.data.mean().item():.4f}.")
+            logger.info(f"标准差: {param.data.std().item():.4f}.")
+        else:
+            logger.info(f"参数名称: {name}, 参数形状: {param.shape}, 未训练.")    
+    
     del evaluator
     gc.collect()
     torch.cuda.empty_cache()
+
+    if Writer is not None:
+        Writer.close()
     
     # ========== Output ==========
     logger.info("=" * 50)
