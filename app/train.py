@@ -133,6 +133,9 @@ if __name__ == "__main__":
     del trainer
     gc.collect()
     torch.cuda.empty_cache()
+
+    if Writer is not None:
+        Writer.close()
     
     # ========== Output ==========
     logger.info("=" * 50)
