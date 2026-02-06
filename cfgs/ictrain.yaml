@@ -20,7 +20,7 @@ data:
       dffilter: "date >= '2020-01-03'"
       normalize: zscore
 
-  testloader:
+  evalloader:
     name: interval
     params:
       file: fake_data.parquet
@@ -73,11 +73,12 @@ train:
 
 
 # ======================
-# Result configuration
+# Evaluating configuration
 # ======================
-result:
-  combo: null
-  model: MLPModel_MSELoss_20260128_145143.pth
+eval:
+  device: cpu
+  record: False
+  logdir: tensorboard
 
 
 # ======================
