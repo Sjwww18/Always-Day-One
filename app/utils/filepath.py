@@ -12,6 +12,13 @@ def get_proj_root():
     )
 
 
+def get_back_path(filename=""):
+    """Get the path to the backtest directory (creates directory automatically if it doesn't exist)"""
+    back_dir = os.path.join(get_proj_root(), "back")
+    os.makedirs(back_dir, exist_ok=True)  # Ensure directory exists
+    return os.path.join(back_dir, "data", filename)
+
+
 def get_cfgs_path(filename=""):
     """Get the path to the configs directory (creates directory automatically if it doesn't exist)"""
     cfgs_dir = os.path.join(get_proj_root(), "cfgs")
