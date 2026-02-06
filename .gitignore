@@ -2,8 +2,12 @@ __pycache__/
 *.pyc
 logs/
 sota/
+spts/
 test/
 dev.py
 script.py
 PRIVACY.md
 .env
+Dockerfile
+.dockerignore
+requirements.txt

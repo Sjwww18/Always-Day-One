@@ -1,0 +1,19 @@
+# requirements.txt
+
+# 基础
+numpy
+pandas
+pyyaml
+tqdm
+pyarrow
+
+# 可视化（只生成图）
+matplotlib
+seaborn
+
+# Jupyter
+jupyterlab
+ipykernel
+
+
+# end of requirements.txt
