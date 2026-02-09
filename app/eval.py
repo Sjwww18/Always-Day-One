@@ -12,6 +12,9 @@ if __name__ == "__main__":
     logger = setup_logger("eval")
     args = parse_args()
 
+    if args.model is None:
+        logger.error("Model path is required for eval/backtest.")
+    
     # ========== Logger ==========
     logger.info("=" * 50)
     logger.info("0. Starting the application......")
