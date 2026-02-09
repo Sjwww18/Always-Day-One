@@ -9,6 +9,7 @@ dev.py
 script.py
 PRIVACY.md
 .env
+.vscode/
 Dockerfile
 .dockerignore
 requirements.txt
