@@ -1,9 +1,7 @@
 # app/utils/cli.py
 
 import os
-import pickle
 import argparse
-from turtle import mode
 import numpy as np
 import pandas as pd
 from typing import Any, List, Tuple
@@ -47,6 +45,12 @@ def parse_args():
         type=str,
         default="ictrain.yaml",
         help="Config file name under app/cfgs/"
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default=None,
+        help="Model file name under sota/"
     )
     return parser.parse_args()
 
