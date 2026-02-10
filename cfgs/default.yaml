@@ -5,17 +5,28 @@
 # ======================
 data:
   trainloader:
-    file: fake_data.parquet
-    filter: null
+    name: date
+    params:
+      file: fake_data.parquet
+      fillna: zero
+      dffilter: null
+      normalize: null
 
   validloader:
-    file: fake_data.parquet
-    filter: null
-    # filter: "date >= '2020-01-03'"
+    name: date
+    params:
+      file: fake_data.parquet
+      fillna: zero
+      dffilter: null
+      normalize: null
 
-  testloader:
-    file: fake_data.parquet
-    filter: null
+  evalloader:
+    name: date
+    params:
+      file: fake_data.parquet
+      fillna: zero
+      dffilter: null
+      normalize: null
 
   label:
     - y
@@ -29,6 +40,7 @@ data:
 model:
   name: mlp
   params:
+    # feature_dim: 450
     hidden_dims: [32]
     dropout: 0.1
     init: xavier   # Reserved: xavier / normal / kaiming
@@ -46,7 +58,7 @@ loss:
 # Training configuration
 # ======================
 train:
-  epochs: 4
+  epochs: 1
   lr: 0.001
   device: cpu
   record: True
@@ -62,11 +74,12 @@ train:
 
 
 # ======================
-# Result configuration
+# Evaluating configuration
 # ======================
-result:
-  combo: null
-  model: null
+eval:
+  device: cpu
+  record: False
+  logdir: tensorboard
 
 
 # ======================
