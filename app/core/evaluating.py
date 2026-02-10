@@ -7,8 +7,8 @@ from typing import Any, List, Tuple
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from app.core.logger import setup_logger
-logger = setup_logger(__name__)
+# from app.core.logger import setup_logger
+# logger = setup_logger(__name__)
 
 
 class Evaluator:
