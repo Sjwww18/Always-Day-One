@@ -13,7 +13,7 @@ data:
     filter: null
     # filter: "date >= '2020-01-03'"
 
-  testdatader:
+  testloader:
     file: fake_data.parquet
     filter: null
 
