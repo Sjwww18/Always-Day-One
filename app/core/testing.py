@@ -4,14 +4,13 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from datetime import datetime
-from typing import List, Tuple
+from typing import Any, List, Tuple
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from app.core.logger import setup_logger
 from app.utils.filepath import get_data_path
-from app.loader.loaddata import LoadData
 logger = setup_logger(__name__)
 
 
@@ -20,7 +19,7 @@ class Tester:
         self,
         model: torch.nn.Module,
         loss_fn: torch.nn.Module,
-        test_loader: LoadData,
+        test_loader: Any,
         device: torch.device,
         writer: SummaryWriter=None,
         EqtyPath: str="EqtyData.pkl"
