@@ -2,12 +2,12 @@
 
 from tqdm import tqdm
 from datetime import datetime
+from typing import Any
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from app.core.logger import setup_logger
-from app.loader.loaddata import LoadData
 logger = setup_logger(__name__)
 
 
@@ -17,8 +17,8 @@ class Trainer:
         model: torch.nn.Module,
         loss_fn: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
-        train_loader: LoadData,
-        valid_loader: LoadData,
+        train_loader: Any,
+        valid_loader: Any,
         device: torch.device,
         writer: SummaryWriter=None,
         scheduler: torch.optim.lr_scheduler._LRScheduler=None,
