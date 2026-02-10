@@ -34,7 +34,7 @@ def assemble(result: List[Tuple[Any, np.ndarray]], modelname: str, mode: str="ev
     combopath = get_back_path(comboname)
     COMBO.to_pickle(combopath)
     
-    return combopath
+    return comboname
 
 
 # ===== parse args =====
