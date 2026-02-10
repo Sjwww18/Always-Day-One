@@ -44,10 +44,32 @@ class DateLoader:
 
         # ===== core data structure =====
         # key: (date) -> DataFrame
-        self.data = {
-            (d): g
-            for (d), g in df.groupby(["date"], sort=False)
-        }
+        self.data = {}
+        for d, g in df.groupby(["date"], sort=False):
+            X = g[self.features]
+
+            # ===== nan handling =====
+            if self.fillna == "zero":
+                X = X.fillna(0.0)
+            elif self.fillna == "mean":
+                X = X.fillna(X.mean(axis=0))
+            
+            X = X.to_numpy(dtype="float32")
+
+            # ===== normalization =====
+            if self.normalize == "zscore":
+                X = zscore(X)
+
+            # ===== label =====
+            if label:
+                y = g[label].to_numpy(dtype="float32").reshape(-1, 1)
+                mask = (~np.isnan(y)).astype("float32")
+            else:
+                y = None
+                mask = None
+
+            self.data[(d,)] = (X, y, mask)
+        
         self.keys = list(self.data.keys())        
         del df
 
@@ -56,50 +78,20 @@ class DateLoader:
 
     def __iter__(self) -> Iterable[Tuple[Tuple[datetime], np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]]:
         for key in self.keys:
-            g = self.data[key]
-            X = g[self.features]
-            
-            # ===== nan handling =====
-            if self.fillna == "zero":
-                X = X.fillna(0.0).to_numpy(dtype="float32")
-            elif self.fillna == "mean":
-                X = X.fillna(X.mean(axis=0)).to_numpy(dtype="float32")
-            else:
-                X = X.to_numpy(dtype="float32")
-
-            # ===== normalization =====
-            if self.normalize == "zscore":
-                X = zscore(X)
-
-            # ===== label =====            
-            if self.label:
-                y = g[self.label].to_numpy(dtype="float32").reshape(-1, 1)
-                mask = (~np.isnan(y)).astype("float32")
-            else:
-                y = None
-                mask = None
-            
+            X, y, mask = self.data[key]
             yield key, X, y, mask
     
     def process(self, y: np.ndarray) -> np.ndarray:
         return y.reshape(-1, 51).T  # 51 interval × 5171 stock
     
-    def get_batch(self, key: Tuple[datetime]) -> Tuple[np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]:
-        date = key
-        if isinstance(date, datetime):
-            date = date.strftime("%Y-%m-%d")
+    def get_batch(self, key: Tuple[str]) -> Tuple[np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]:
+        date = key[0]
+        # if isinstance(date, datetime):
+        #     date = date.strftime("%Y-%m-%d")
+        if isinstance(date, str):
+            date = pd.to_datetime(date)
         
-        g = self.data[(date)]
-        X = g[self.features].to_numpy(dtype="float32")
-        
-        if self.label:
-            y = g[self.label].to_numpy(dtype="float32").reshape(-1, 1)
-            mask = (~np.isnan(y)).astype("float32")
-        else:
-            y = None
-            mask = None
-        
-        return X, y, mask
+        return self.data[(date,)]
 
 
 # end of app/loader/datedata.py
