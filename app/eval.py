@@ -107,7 +107,7 @@ if __name__ == "__main__":
     logger.info("=" * 50)
     
     Result = evaluator.evaluating()
-    ComboPath = assemble(Result, args.model, mode="eval")
+    ComboPath = assemble(Result, args.model, by=cfg["data"]["evalloader"]["name"], mode="eval")
 
     # ========== Clearing ==========
     logger.info("=" * 50)
