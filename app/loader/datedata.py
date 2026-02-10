@@ -61,8 +61,8 @@ class DateLoader:
                 X = zscore(X)
 
             # ===== label =====
-            if label:
-                y = g[label].to_numpy(dtype="float32").reshape(-1, 1)
+            if self.label:
+                y = g[self.label].to_numpy(dtype="float32").reshape(-1, 1)
                 mask = (~np.isnan(y)).astype("float32")
             else:
                 y = None
@@ -76,10 +76,10 @@ class DateLoader:
     def __len__(self) -> int:
         return len(self.keys)
 
-    def __iter__(self) -> Iterable[Tuple[Tuple[datetime], np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]]:
+    def __iter__(self) -> Iterable[Tuple[Tuple[str], np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]]:
         for key in self.keys:
             X, y, mask = self.data[key]
-            yield key, X, y, mask
+            yield (key,), X, y, mask
     
     def process(self, y: np.ndarray) -> np.ndarray:
         return y.reshape(-1, 51).T  # 51 interval × 5171 stock

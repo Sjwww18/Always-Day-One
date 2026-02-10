@@ -61,7 +61,7 @@ train:
   epochs: 1
   lr: 0.001
   device: cpu
-  record: True
+  record: False
   logdir: tensorboard
   # scheduler:
   #   name: StepLR
