@@ -1,4 +1,4 @@
-# app/loader/loadintervaldata.py
+# app/loader/intervaldata.py
 
 import numpy as np
 import pandas as pd
@@ -102,4 +102,4 @@ class IntervalLoader:
         return X, y, mask
 
 
-# end of app/loader/loadintervaldata.py
+# end of app/loader/intervaldata.py

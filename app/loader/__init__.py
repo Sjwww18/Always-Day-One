@@ -1,1 +1,2 @@
-from .loadintervaldata import IntervalLoader  # noqa
+from .datedata import DateLoader  # noqa
+from .intervaldata import IntervalLoader  # noqa
