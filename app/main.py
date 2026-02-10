@@ -1,116 +1,94 @@
 # app/main.py
 
-import json
-import yaml
-import pickle
-import argparse
+if __name__ == "__main__":
+    import gc
+    import yaml
 
-import torch
-from torch.utils.tensorboard import SummaryWriter
+    import torch
+    from torch.utils.tensorboard import SummaryWriter
 
-from app.utils.filepath import (
-    get_cfgs_path, get_data_path, get_logs_path, get_sota_path, get_test_path
-    )
-from app.core.logger import setup_logger
-logger = setup_logger(__name__)
-
-
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--config",
-        type=str,
-        default="default.yaml",
-        help="Config file name under app/configs/"
-    )
-    return parser.parse_args()
-
-
-def save_result(result: dict, path: str) -> None:
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(result, f, indent=2, ensure_ascii=False)
-
-
-def main() -> None:
-    """# Fight !!!"""
+    from app.core.logger import setup_logger
+    from app.utils.cli import parse_args
+    logger = setup_logger("main")
     args = parse_args()
 
     # ========== Logger ==========
     logger.info("=" * 50)
-    logger.info("Starting the application......")
-    logger.info("=" * 50)
+    logger.info("0. Starting the application......")
     logger.info(f"Config file: {args.config}.")
 
-    # --------------------------------------------------
-    # Resolve config path
-    # --------------------------------------------------
-
+    # ========== Config path ==========
+    from app.utils.filepath import get_cfgs_path
+    
+    logger.info("=" * 50)
+    logger.info("1. Resolving config path......")
+    
     config_path = get_cfgs_path(args.config)
-    logger.info(f"Loading config from: {config_path}.")
-
     with open(config_path, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
     
-    # --------------------------------------------------
-    # Load feature list
-    # --------------------------------------------------
+    logger.info(f"Loading config from: {config_path}.")
+
+    # ========== Loading features ==========
+    from app.utils.helper import load_features
+    from app.utils.filepath import get_data_path
+    
+    logger.info("=" * 50)
+    logger.info("2. Loading features......")
+
     feature_file = cfg["data"]["features"]
     feature_path = get_data_path(feature_file)
-    logger.info(f"Loading features from: {feature_path}.")
-    
-    with open(feature_path, "rb") as f:
-        features = pickle.load(f)
+    features = load_features(feature_path)
+    label = cfg["data"]["label"]
 
-    if isinstance(features, list):
-        features = features
-    elif hasattr(features, "to_list"):
-        features = features.to_list()
-    else:
-        features = list(features)
-    logger.info(f"Number of features: {len(features)}.")
+    logger.info(f"Loading features from: {feature_path}. Number of features: {len(features)}. Label: {label}.")
 
-    # --------------------------------------------------
-    # Build model / loss
-    # --------------------------------------------------
+    # ========== Building losses/metric/models ==========
     import app.losses
+    import app.metric
     import app.models
-    from app.core.build import build_losses, build_models
-
+    from app.core.build import build_losses, build_metric, build_models
+    
+    logger.info("=" * 50)
+    logger.info("3. Building losses / metric / models ......")
+        
     Loss = build_losses(cfg["loss"])
     logger.info(f"Loss function: {Loss}.")
     
-    Model = build_models(cfg["model"], feature_dim=len(features))
-    logger.info(f"Model: {Model}.")
-
-    # --------------------------------------------------
-    # Load validation data first
-    # --------------------------------------------------
-    from app.loader.loaddata import LoadData
+    # Metric = build_metric(cfg["metric"])
+    # logger.info(f"Metric: {Metric}.")
     
-    logger.info("Loading validation data......")
-    valid_cfg = cfg["data"]["validdata"]
-    ValidLoader = LoadData(
-        path=get_data_path(valid_cfg["file"]),
-        label=cfg["data"]["label"],
+    Model = build_models(cfg["model"], feature_dim=len(features))
+    logger.info(f"Model:\n{Model}.")
+
+    # ========== Loading data ==========
+    import app.loader
+    from app.core.build import build_loader
+    
+    logger.info("=" * 50)
+    logger.info("4.1. Loading valid data......")
+    
+    ValidLoader = build_loader(
+        cfg["data"]["validloader"],
         features=features,
-        dffilter=valid_cfg["filter"]
+        label=label
     )
 
-    logger.info("Loading training data......")
-    train_cfg = cfg["data"]["traindata"]
-    TrainLoader = LoadData(
-        path=get_data_path(train_cfg["file"]),
-        label=cfg["data"]["label"],
+    logger.info("4.2. Loading train data......")
+    
+    TrainLoader = build_loader(
+        cfg["data"]["trainloader"],
         features=features,
-        dffilter=train_cfg["filter"]
+        label=label
     )
-
-    # --------------------------------------------------
-    # Training
-    # --------------------------------------------------
+    
+    # ========== Training ==========
     from app.core.training import Trainer
+    from app.utils.filepath import get_logs_path
 
-    logger.info("Starting training loop......")
+    logger.info("=" * 50)
+    logger.info("5. Training the model......")
+    
     Device = torch.device(cfg["train"]["device"])
     Writer = None
     if cfg["train"].get("record", False):
@@ -140,80 +118,111 @@ def main() -> None:
         early_stop_cfg=EarlyStopCfg
     )
     
-    logger.info("=" * 50)
     logger.info("Training config:")
     for k, v in cfg["train"].items():
         logger.info(f"{k}: {v}")
     logger.info("=" * 50)
     
-    # trainer.debug(epochs=cfg["train"]["epochs"])
+    # ModelName = trainer.debug(epochs=cfg["train"]["epochs"])
     ModelName = trainer.training(epochs=cfg["train"]["epochs"])
-    ModelPath = get_sota_path(ModelName)
-    del ValidLoader, TrainLoader, trainer, Optimizer, Scheduler, Loss
+
+    # ========== Clearing ==========
+    logger.info("=" * 50)
+    logger.info("6. Clearing GPU memory......")
+    
+    del trainer
+    gc.collect()
     torch.cuda.empty_cache()
-    
-    # --------------------------------------------------
-    # Evaluation
-    # --------------------------------------------------
-    from app.core.testing import Tester
-
-    logger.info("Evaluating the model......")
-    logger.info("Loading testing data......") 
-    test_cfg = cfg["data"]["testdata"]
-    
-    TestLoader = LoadData(
-        path=get_data_path(test_cfg["file"]),
-        label=[],
-        features=features,
-        dffilter=test_cfg["filter"]
-    )
-    
-    logger.info(f"Loading sota model: {ModelPath}......")
-    Model = torch.load(ModelPath).to(Device)
-    
-    logger.info("Testing the model......")
-    tester = Tester(
-        model=Model,
-        loss_fn=None,
-        test_loader=TestLoader,
-        device=Device,
-        writer=None,
-        EqtyPath=cfg["data"]["eqtydata"]
-    )
-
-    COMBO = tester.postprocess(tester.testing())
-    
-    ComboName = ModelName.replace(".pth", ".pkl")
-    ComboPath = get_test_path(ComboName)
-    COMBO.to_pickle(ComboPath)
-    
-    result = {
-        "combo": ComboName,
-        "model": ModelName,
-    }
-    save_result(result, get_test_path(ComboName.replace(".pkl", ".json")))
-    del TestLoader
-
-    for name, param in Model.named_parameters():
-        if param.requires_grad:
-            logger.debug(f"参数名称: {name}, 参数形状: {param.shape}.")
-            logger.debug(f"最大值: {param.data.max().item():.4f}.")
-            logger.debug(f"最小值: {param.data.min().item():.4f}.")
-            logger.debug(f"均值: {param.data.mean().item():.4f}.")
-            logger.debug(f"标准差: {param.data.std().item():.4f}.")
-        else:
-            logger.debug(f"参数名称: {name}, 参数形状: {param.shape}, 未训练.")
 
     if Writer is not None:
         Writer.close()
-    logger.info("Training finished.")
-    # --------------------------------------------------
-    # Exiting
-    # --------------------------------------------------
-    return None
 
-if __name__ == "__main__":
-    main()
+    # ========== Evaluating ==========
+    from app.core.evaluating import Evaluator
+    from app.utils.cli import assemble
+    from app.utils.filepath import get_sota_path
+
+    logger.info("=" * 50)
+    logger.info("7. Evaluating the model......")
+    
+    logger.info("*" * 50)
+    logger.info("7.1. Building metric / models ......")
+    
+    # Loss = build_losses(cfg["loss"])
+    # logger.info(f"Loss function: {Loss}.")
+
+    # Metric = build_metric(cfg["metric"])
+    # logger.info(f"Metric: {Metric}.")
+
+    Model = torch.load(get_sota_path(ModelName))
+    logger.info(f"Model:\n{Model}.")
+
+    logger.info("*" * 50)
+    logger.info("7.2. Loading test data......") 
+    
+    EvalLoader = build_loader(
+        cfg["data"]["evalloader"],
+        features=features,
+        label=label
+    )
+
+    logger.info("*" * 50)
+    logger.info("7.3. Evaluating......") 
+
+    Device = torch.device(cfg["eval"]["device"])
+    Writer = None
+    if cfg["eval"].get("record", False):
+        logdir = cfg["eval"].get("logdir", "tensorboard")
+        Writer = SummaryWriter(log_dir=get_logs_path(logdir))
+    
+    Model = Model.to(Device)
+
+    evaluator = Evaluator(
+        model=Model,
+        loss_fn=None,
+        eval_loader=EvalLoader,
+        device=Device,
+        writer=Writer
+    )
+
+    logger.info("Evaluating config:")
+    for k, v in cfg["eval"].items():
+        logger.info(f"{k}: {v}")
+    logger.info("=" * 50)
+    
+    Result = evaluator.evaluating()
+    ComboPath = assemble(Result, ModelName, by=cfg["data"]["evalloader"]["name"], mode="eval")
+
+    # ========== Clearing ==========
+    logger.info("=" * 50)
+    logger.info("8. Clearing GPU memory......")
+
+    for name, param in Model.named_parameters():
+        if param.requires_grad:
+            logger.info(f"参数名称: {name}, 参数形状: {param.shape}.")
+            logger.info(f"最大值: {param.data.max().item():.4f}.")
+            logger.info(f"最小值: {param.data.min().item():.4f}.")
+            logger.info(f"均值: {param.data.mean().item():.4f}.")
+            logger.info(f"标准差: {param.data.std().item():.4f}.")
+        else:
+            logger.info(f"参数名称: {name}, 参数形状: {param.shape}, 未训练.")    
+
+    del evaluator
+    gc.collect()
+    torch.cuda.empty_cache()
+
+    if Writer is not None:
+        Writer.close()
+    
+    # ========== Output ==========
+    logger.info("=" * 50)
+    logger.info("9. Output Combo path......")
+
+    print(ComboPath)
+    
+    logger.info("=" * 50)
+    logger.info("10. All done!")
+    logger.info("=" * 50 + "\n")
 
 
 # end of app/main.py
