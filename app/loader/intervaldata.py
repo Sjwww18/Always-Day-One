@@ -44,10 +44,32 @@ class IntervalLoader:
 
         # ===== core data structure =====
         # key: (date, interval) -> DataFrame
-        self.data = {
-            (d, itv): g
-            for (d, itv), g in df.groupby(["date", "interval"], sort=False)
-        }
+        self.data = {}
+        for (d, itv), g in df.groupby(["date", "interval"], sort=False):
+            X = g[self.features]
+            
+            # ===== nan handling =====
+            if self.fillna == "zero":
+                X = X.fillna(0.0)
+            elif self.fillna == "mean":
+                X = X.fillna(X.mean(axis=0))
+            
+            X = X.to_numpy(dtype="float32")
+            
+            # ===== normalization =====
+            if self.normalize == "zscore":
+                X = zscore(X)
+            
+            # ===== label =====
+            if self.label:
+                y = g[self.label].to_numpy(dtype="float32").reshape(-1, 1)
+                mask = (~np.isnan(y)).astype("float32")
+            else:
+                y = None
+                mask = None
+            
+            self.data[(d, itv)] = (X, y, mask)
+        
         self.keys = list(self.data.keys())
         del df
 
@@ -56,29 +78,7 @@ class IntervalLoader:
 
     def __iter__(self) -> Iterable[Tuple[Tuple[datetime, int], np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]]:
         for key in self.keys:
-            g = self.data[key]
-            X = g[self.features]
-            
-            # ===== nan handling =====
-            if self.fillna == "zero":
-                X = X.fillna(0.0).to_numpy(dtype="float32")
-            elif self.fillna == "mean":
-                X = X.fillna(X.mean(axis=0)).to_numpy(dtype="float32")
-            else:
-                X = X.to_numpy(dtype="float32")
-            
-            # ===== normalization =====
-            if self.normalize == "zscore":
-                X = zscore(X)
-
-            # ===== label =====            
-            if self.label:
-                y = g[self.label].to_numpy(dtype="float32").reshape(-1, 1)
-                mask = (~np.isnan(y)).astype("float32")
-            else:
-                y = None
-                mask = None
-            
+            X, y, mask = self.data[key]
             yield key, X, y, mask
     
     def process(self, y: np.ndarray) -> np.ndarray:
@@ -86,20 +86,12 @@ class IntervalLoader:
 
     def get_batch(self, key: Tuple[datetime, int]) -> Tuple[np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]:
         date, interval = key
-        if isinstance(date, datetime):
-            date = date.strftime("%Y-%m-%d")
-        
-        g = self.data[(date, interval)]
-        X = g[self.features].to_numpy(dtype="float32")
+        # if isinstance(date, datetime):
+        #     date = date.strftime("%Y-%m-%d")
+        if isinstance(date, str):
+            date = pd.to_datetime(date)
 
-        if self.label:
-            y = g[self.label].to_numpy(dtype="float32").reshape(-1, 1)
-            mask = (~np.isnan(y)).astype("float32")
-        else:
-            y = None
-            mask = None
-
-        return X, y, mask
+        return self.data[(date, interval)]
 
 
 # end of app/loader/intervaldata.py
