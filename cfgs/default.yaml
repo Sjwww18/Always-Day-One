@@ -4,16 +4,16 @@
 # Data configuration
 # ======================
 data:
-  traindata:
+  trainloader:
     file: fake_data.parquet
     filter: null
 
-  validdata:
+  validloader:
     file: fake_data.parquet
     filter: null
     # filter: "date >= '2020-01-03'"
 
-  testdata:
+  testdatader:
     file: fake_data.parquet
     filter: null
 
@@ -29,7 +29,8 @@ data:
 model:
   name: mlp
   params:
-    hidden_dim: 32
+    hidden_dims: [32]
+    dropout: 0.1
     init: xavier   # Reserved: xavier / normal / kaiming
 
 
