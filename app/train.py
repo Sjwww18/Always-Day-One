@@ -130,7 +130,7 @@ if __name__ == "__main__":
     logger.info("=" * 50)
     logger.info("6. Clearing GPU memory......")
     
-    del trainer
+    del trainer, TrainLoader, ValidLoader
     gc.collect()
     torch.cuda.empty_cache()
 
