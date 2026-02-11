@@ -130,7 +130,7 @@ if __name__ == "__main__":
     logger.info("=" * 50)
     logger.info("6. Clearing GPU memory......")
     
-    del trainer
+    del trainer, TrainLoader, ValidLoader
     gc.collect()
     torch.cuda.empty_cache()
 
@@ -207,7 +207,7 @@ if __name__ == "__main__":
         else:
             logger.info(f"参数名称: {name}, 参数形状: {param.shape}, 未训练.")    
 
-    del evaluator
+    del evaluator, EvalLoader
     gc.collect()
     torch.cuda.empty_cache()
 
