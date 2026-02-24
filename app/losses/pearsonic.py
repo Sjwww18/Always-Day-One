@@ -42,8 +42,8 @@ class PearsonICLoss(nn.Module):
         cov = torch.mean(y_pred * y_true)
 
         # standard deviations
-        std_pred = torch.sqrt(torch.mean(y_pred ** 2) + self.eps)
-        std_true = torch.sqrt(torch.mean(y_true ** 2) + self.eps)
+        std_pred = torch.sqrt(torch.mean(y_pred ** 2) + self.eps).detach()
+        std_true = torch.sqrt(torch.mean(y_true ** 2) + self.eps).detach()
 
         # pearson correlation
         ic = cov / (std_pred * std_true)
