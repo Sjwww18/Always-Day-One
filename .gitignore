@@ -4,8 +4,9 @@ back/
 logs/
 sota/
 spts/
-test/
+UPmodel/
 dev.py
+test.py
 script.py
 PRIVACY.md
 .env
