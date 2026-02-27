@@ -3,6 +3,7 @@
 import torch
 import numpy as np
 
+
 @torch.no_grad()
 def DdMetric(returns: torch.Tensor, window_size: int=None) -> torch.Tensor:
     """
@@ -35,3 +36,6 @@ def DdMetric(returns: torch.Tensor, window_size: int=None) -> torch.Tensor:
     max_drawdown = torch.min(drawdown, dim=1)[0]
     
     return -max_drawdown
+
+
+# end of app/metric/dd.py

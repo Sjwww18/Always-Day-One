@@ -7,7 +7,7 @@ from app.core.registry import register_metric
 
 @register_metric("top")
 @torch.no_grad()
-def TopKMetric(y_pred: torch.Tensor, y_true: torch.Tensor, mask: torch.Tensor = None, k: int = 100) -> torch.Tensor:
+def TopKMetric(y_pred: torch.Tensor, y_true: torch.Tensor, mask: torch.Tensor=None, k: int=100) -> torch.Tensor:
     """
     Top-K Hit Rate: Count how many predicted top/bottom K actually hit real top/bottom K.
     Args:
@@ -45,5 +45,6 @@ def TopKMetric(y_pred: torch.Tensor, y_true: torch.Tensor, mask: torch.Tensor = 
     hit_rate = (hits_top + hits_bottom).float() / (2 * k)
 
     return hit_rate
+
 
 # end of app/metric/top.py

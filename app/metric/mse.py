@@ -30,4 +30,5 @@ def MSEMetric(y_pred: torch.Tensor, y_true: torch.Tensor, mask: torch.Tensor=Non
 
     return torch.mean((y_pred - y_true) ** 2)
 
+
 # end of app/metric/mse.py

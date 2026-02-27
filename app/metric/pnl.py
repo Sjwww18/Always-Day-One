@@ -45,4 +45,5 @@ def PnlMetric(y_pred: torch.Tensor, y_true: torch.Tensor, mask: torch.Tensor=Non
 
     return pnl
 
+
 # end of app/metric/pnl.py

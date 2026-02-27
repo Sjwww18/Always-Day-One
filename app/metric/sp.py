@@ -3,6 +3,7 @@
 import torch
 import numpy as np
 
+
 @torch.no_grad()
 def SpMetric(returns: torch.Tensor, window_size: int=None, eps: float=1e-8):
     """
@@ -35,3 +36,6 @@ def SpMetric(returns: torch.Tensor, window_size: int=None, eps: float=1e-8):
     results = torch.where(stds < eps, torch.zeros_like(stds), means / (stds + eps))
     
     return results
+
+
+# end of app/metric/sp.py
