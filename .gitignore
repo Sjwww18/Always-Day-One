@@ -3,7 +3,6 @@ OS_model/
 back/
 ckpt/
 logs/
-spts/
 
 dev.py
 test.py
