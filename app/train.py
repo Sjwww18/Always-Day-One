@@ -100,7 +100,10 @@ if __name__ == "__main__":
         logdir = cfg["train"].get("logdir", "tensorboard")
         Writer = SummaryWriter(log_dir=get_logs_path(logdir))
     
+    if torch.cuda.device_count() > 1:
+        Model = torch.nn.DataParallel(Model)
     Model = Model.to(Device)
+    
     Lr = float(cfg["train"]["lr"])
     Optimizer = torch.optim.Adam(Model.parameters(), lr=Lr)
 
@@ -109,18 +112,22 @@ if __name__ == "__main__":
         Scheduler = torch.optim.lr_scheduler.__dict__[Scheduler["name"]](
             Optimizer, **Scheduler["params"]
         )
+    exp_name = args.config.replace(".yaml", "")
     EarlyStopCfg = cfg["train"].get("early_stop", {})
+    CheckpointCfg = cfg["train"].get("checkpoint", {})
 
     trainer = Trainer(
         model=Model,
         loss_fn=Loss,
         optimizer=Optimizer,
+        scheduler=Scheduler,
         train_loader=TrainLoader,
         valid_loader=ValidLoader,
         device=Device,
         writer=Writer,
-        scheduler=Scheduler,
-        early_stop_cfg=EarlyStopCfg
+        exp_name=exp_name,
+        early_stop_cfg=EarlyStopCfg,
+        checkpoint_cfg=CheckpointCfg
     )
     
     logger.info("Training config:")
