@@ -1,10 +1,13 @@
 # app/utils/cli.py
 
 import os
+import random
 import argparse
 import numpy as np
 import pandas as pd
 from typing import Any, List, Tuple
+
+import torch
 
 from app.utils.filepath import get_back_path, get_data_path
 
@@ -72,6 +75,31 @@ def parse_args():
         help="Model file name under sota/"
     )
     return parser.parse_args()
+
+
+# ===== set seed =====
+def set_seed(seed: int = 42):
+    # Python hash seed
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    # Python / NumPy
+    random.seed(seed)
+    np.random.seed(seed)
+    # Torch CPU / GPU
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    # cuDNN reproducibility (important for CNN / LSTM)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    # Enforce deterministic algorithms (PyTorch 1.8+)
+    torch.use_deterministic_algorithms(True, warn_only=True)
+
+
+# optional: only needed when num_workers > 0
+def seed_worker(worker_id: int):
+    worker_seed = torch.initial_seed() % 2 ** 32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
 
 
 # end of app/utils/cli.py

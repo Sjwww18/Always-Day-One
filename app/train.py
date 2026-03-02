@@ -8,7 +8,7 @@ if __name__ == "__main__":
     from torch.utils.tensorboard import SummaryWriter
     
     from app.core.logger import setup_logger
-    from app.utils.cli import parse_args
+    from app.utils.cli import parse_args, set_seed
     logger = setup_logger("train")
     args = parse_args()
 
@@ -29,6 +29,11 @@ if __name__ == "__main__":
     
     logger.info(f"Loading config from: {config_path}.")
 
+    # ========== Set seed ==========
+    seed = cfg.get("seed", 42)
+    set_seed(seed)
+    logger.info(f"Random seed set to: {seed}.")
+    
     # ========== Loading features ==========
     from app.utils.helper import load_features
     from app.utils.filepath import get_data_path
