@@ -1,7 +1,8 @@
 # app/core/training.py
 
 from tqdm import tqdm 
-from typing import Any
+from datetime import datetime
+from typing import Any, Callable, Dict, List
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
@@ -16,6 +17,7 @@ class Trainer:
         self,
         model: torch.nn.Module,
         loss_fn: torch.nn.Module,
+        metric_fns: List[Callable],
         optimizer: torch.optim.Optimizer,
         scheduler: torch.optim.lr_scheduler._LRScheduler,
         train_loader: Any,
@@ -28,6 +30,7 @@ class Trainer:
     ):
         self.Model = model
         self.Loss = loss_fn
+        self.Metric = metric_fns or []
         self.Optimizer = optimizer
         self.Scheduler = scheduler
         self.TrainLoader = train_loader
@@ -39,8 +42,14 @@ class Trainer:
         self.CheckpointCfg = checkpoint_cfg or {}
 
         self.patience = self.EarlyStopCfg.get("patience", 10)
-        self.monitor = self.EarlyStopCfg.get("monitor", "val_loss")
-        self.best_val_loss = float("inf")
+        self.monitors = self.EarlyStopCfg.get("monitor", ["val_loss"])
+        
+        self.best_monitor_vals = {}
+        for m in self.monitors:
+            if m == "val_loss":
+                self.best_monitor_vals[m] = float("inf")
+            else:
+                self.best_monitor_vals[m] = float("-inf")
         self.patience_counter = 0
 
     def trainone(self) -> float:
@@ -68,7 +77,7 @@ class Trainer:
 
             batch_nums += 1
             total_loss += loss.item()
-            logger.debug(f"训练批次: {batch_nums}, loss: {loss.item():.4f}, key: {key}.")
+            # logger.debug(f"训练批次: {batch_nums}, loss: {loss.item():.4f}, key: {key}.")
 
         avg_loss = total_loss / max(batch_nums, 1)
 
@@ -80,11 +89,15 @@ class Trainer:
         
         return avg_loss
 
-    def validate(self) -> float:
+    def validate(self) -> Dict[str, float]:
         self.Model.eval()
 
         batch_nums = 0
         total_loss = 0.0
+        all_ypre = []
+        all_y = []
+        all_mask = []
+        
         with torch.no_grad():
             for key, X, y, mask in tqdm(self.ValidLoader, desc="日期进度"):
                 X = torch.from_numpy(X).to(self.Device)
@@ -100,16 +113,37 @@ class Trainer:
                 
                 batch_nums += 1
                 total_loss += loss.item()
-                logger.debug(f"验证批次: {batch_nums}, loss: {loss.item():.4f}, key: {key}.")
+                # logger.debug(f"验证批次: {batch_nums}, loss: {loss.item():.4f}, key: {key}.")
+                
+                all_ypre.append(ypre.cpu())
+                all_y.append(y.cpu())
+                if mask is not None:
+                    all_mask.append(mask.cpu())
 
         avg_loss = total_loss / max(batch_nums, 1)
         
-        # TensorBoard
+        metrics = {"val_loss": avg_loss}
+        
+        if self.Metric and all_ypre:
+            all_ypre = torch.cat(all_ypre, dim=0)
+            all_y = torch.cat(all_y, dim=0)
+            all_mask = torch.cat(all_mask, dim=0) if all_mask else None
+            
+            for metric_fn in self.Metric:
+                metric_name = metric_fn.__name__
+                metric_value = metric_fn(all_ypre, all_y, mask=all_mask)
+                metrics[metric_name] = metric_value.item()
+        
         if self.Writer is not None and avg_loss == avg_loss:
             self.Writer.add_scalar("Loss/Valid", avg_loss, self.current_epoch)
-        logger.info(f"[Epoch {self.current_epoch}] 验证集平均损失: {avg_loss:.4f}.")
+            for metric_name, metric_value in metrics.items():
+                if metric_name != "val_loss":
+                    self.Writer.add_scalar(f"Metric/{metric_name}", metric_value, self.current_epoch)
         
-        return avg_loss
+        metric_str = " | ".join([f"{k}: {v:.6f}" for k, v in metrics.items()])
+        logger.info(f"[Epoch {self.current_epoch}] 验证集: {metric_str}.")
+        
+        return metrics
 
     def training(self, epochs: int) -> str:
         from app.utils.ckpt import save_ckpt
@@ -122,45 +156,58 @@ class Trainer:
             logger.info(f"[Epoch {epoch+1}/{epochs}] 开始训练......")
 
             train_loss = self.trainone()
-            valid_loss = self.validate()
+            valid_metrics = self.validate()
 
             logger.info(
                 f"第 {epoch+1} / {epochs} 轮训练完成 | "
-                f"训练集平均损失: {train_loss:.6f} | 验证集平均损失: {valid_loss:.6f}."
+                f"训练集平均损失: {train_loss:.6f}."
             )
 
             if self.Scheduler is not None:
                 self.Scheduler.step()
 
-            save_latest = self.CheckpointCfg.get("save_latest", True)
-            if save_latest:
-                save_ckpt(
-                    path=get_ckpt_path(self.ExpName, "latest.ckpt"),
-                    model=self.Model,
-                    optimizer=self.Optimizer,
-                    scheduler=self.Scheduler,
-                    epoch=self.current_epoch,
-                    best_metric=valid_loss,
-                )
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            save_ckpt(
+                path=get_ckpt_path(self.ExpName, f"{timestamp}.ckpt"),
+                model=self.Model,
+                optimizer=self.Optimizer,
+                scheduler=self.Scheduler,
+                epoch=self.current_epoch,
+                best_metric=valid_metrics,
+            )
 
-            if valid_loss < self.best_val_loss:
-                self.best_val_loss = valid_loss
+            is_monitor_better = True
+            for monitor in self.monitors:
+                monitor_val = valid_metrics.get(monitor, valid_metrics.get("val_loss"))
+                if monitor == "val_loss":
+                    if monitor_val >= self.best_monitor_vals["val_loss"]:
+                        is_monitor_better = False
+                else:
+                    if monitor_val <= self.best_monitor_vals.get(monitor, float("-inf")):
+                        is_monitor_better = False
+            
+            if is_monitor_better:
+                for monitor in self.monitors:
+                    monitor_val = valid_metrics.get(monitor, valid_metrics.get("val_loss"))
+                    self.best_monitor_vals[monitor] = monitor_val
                 self.patience_counter = 0
                 
                 save_best = self.CheckpointCfg.get("save_best", True)
                 if save_best:
-                    best_ckpt_name = "best.ckpt"
+                    best_ckpt_name = f"best_{self.current_epoch}.ckpt"
                     save_ckpt(
                         path=get_ckpt_path(self.ExpName, best_ckpt_name),
                         model=self.Model,
                         optimizer=self.Optimizer,
                         scheduler=self.Scheduler,
                         epoch=self.current_epoch,
-                        best_metric=valid_loss,
+                        best_metric=valid_metrics,
                     )
-                    logger.info(f"* 保存最佳模型 (best.ckpt) *.")
+                    monitor_str = " | ".join([f"{m}: {valid_metrics.get(m, valid_metrics.get('val_loss')):.6f}" for m in self.monitors])
+                    logger.info(f"* 保存最佳模型 (best.ckpt), {monitor_str} *.")
             else:
                 self.patience_counter += 1
+                logger.info(f"未改进, patience: {self.patience_counter}/{self.patience}.")
                 if self.patience_counter >= self.patience:
                     logger.info(f"Early stopping triggered at epoch {epoch+1}.")
                     break
@@ -179,8 +226,11 @@ class Trainer:
         )
         
         self.current_epoch = start_epoch + 1
-        self.best_val_loss = best_metric if best_metric is not None else float("inf")
-        logger.info(f"Resumed from epoch {start_epoch}, best_val_loss: {best_metric}.")
+        if isinstance(best_metric, dict):
+            for m in self.monitors:
+                if m in best_metric:
+                    self.best_monitor_vals[m] = best_metric[m]
+        logger.info(f"Resumed from epoch {start_epoch}, best_monitor_vals: {self.best_monitor_vals}.")
         
         return start_epoch, best_metric
 
