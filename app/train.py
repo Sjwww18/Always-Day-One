@@ -60,8 +60,8 @@ if __name__ == "__main__":
     Loss = build_losses(cfg["loss"])
     logger.info(f"Loss function: {Loss}.")
     
-    # Metric = build_metric(cfg["metric"])
-    # logger.info(f"Metric: {Metric}.")
+    Metric = [build_metric({"name": m}) for m in cfg["metric"]]
+    logger.info(f"Metric: {[fn.__name__ for fn in Metric]}.")
     
     Model = build_models(cfg["model"], feature_dim=len(features))
     logger.info(f"Model:\n{Model}.")
@@ -105,7 +105,10 @@ if __name__ == "__main__":
     Model = Model.to(Device)
     
     Lr = float(cfg["train"]["lr"])
-    Optimizer = torch.optim.Adam(Model.parameters(), lr=Lr)
+    OptimizerCfg = cfg["train"].get("optimizer", {"name": "Adam", "params": {}})
+    Optimizer = torch.optim.__dict__[OptimizerCfg["name"]](
+        Model.parameters(), lr=Lr, **OptimizerCfg.get("params", {})
+    )
 
     Scheduler = cfg["train"].get("scheduler", None)
     if Scheduler is not None:
@@ -119,6 +122,7 @@ if __name__ == "__main__":
     trainer = Trainer(
         model=Model,
         loss_fn=Loss,
+        metric_fns=Metric,
         optimizer=Optimizer,
         scheduler=Scheduler,
         train_loader=TrainLoader,
