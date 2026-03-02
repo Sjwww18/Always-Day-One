@@ -14,16 +14,20 @@ def build_loader(cfg: dict, features: List[str], label: List[str]) -> Any:
     return cls(**params)
 
 
+def build_metric(cfg: dict) -> Callable:
+    from functools import partial
+    fn = METRIC_REGISTRY[cfg["name"]]
+    params = cfg.get("params", {})
+    if params:
+        return partial(fn, **params)
+    return fn
+
+
 def build_models(cfg: dict, **extra_kwargs) -> nn.Module:
     cls = MODELS_REGISTRY[cfg["name"]]
     params = cfg.get("params", {}).copy()
     params.update(extra_kwargs)
     return cls(**params)
-
-
-def build_metric(cfg: dict) -> Callable:
-    fn = METRIC_REGISTRY[cfg["name"]]
-    return fn
 
 
 def build_losses(cfg: dict) -> nn.Module:
