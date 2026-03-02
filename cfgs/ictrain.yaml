@@ -60,8 +60,8 @@ loss:
 metric:
   pearsonic: {}
   spearmanic: {}
-  topk:
-    k: 50
+  top:
+    k: 2
 
 
 # ======================
@@ -86,7 +86,7 @@ train:
     patience: 5
     monitor:
       - pearsonic
-      - topk
+      - top
   checkpoint:
     save_best: True
     save_latest: True
