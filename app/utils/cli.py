@@ -74,6 +74,12 @@ def parse_args():
         default=None,
         help="Model file name under sota/"
     )
+    parser.add_argument(
+        "--resume",
+        type=str,
+        default=None,
+        help="Resume training from checkpoint (e.g., latest.ckpt, best.ckpt)"
+    )
     return parser.parse_args()
 
 
@@ -89,10 +95,10 @@ def set_seed(seed: int = 42):
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     # cuDNN reproducibility (important for CNN / LSTM)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+    # torch.backends.cudnn.deterministic = True
+    # torch.backends.cudnn.benchmark = False
     # Enforce deterministic algorithms (PyTorch 1.8+)
-    torch.use_deterministic_algorithms(True, warn_only=True)
+    # torch.use_deterministic_algorithms(True)
 
 
 # optional: only needed when num_workers > 0
