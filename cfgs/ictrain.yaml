@@ -81,8 +81,8 @@ train:
 # ======================
 eval:
   device: cpu
-  record: False
-  logdir: tensorboard
+  record: True
+  logdir: ic
 
 
 # ======================
