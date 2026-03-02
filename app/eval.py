@@ -100,7 +100,6 @@ if __name__ == "__main__":
     
     exp_name = args.config.replace(".yaml", "")
     ckpt_name = args.model if args.model else "best.ckpt"
-    
     load_ckpt(get_ckpt_path(exp_name, ckpt_name), Model, device=Device)
     logger.info(f"Model loaded from: {ckpt_name}.")
     
