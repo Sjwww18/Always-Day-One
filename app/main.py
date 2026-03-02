@@ -100,7 +100,10 @@ if __name__ == "__main__":
         logdir = cfg["train"].get("logdir", "tensorboard")
         Writer = SummaryWriter(log_dir=get_logs_path(logdir))
     
+    if torch.cuda.device_count() > 1:
+        Model = torch.nn.DataParallel(Model)
     Model = Model.to(Device)
+    
     Lr = float(cfg["train"]["lr"])
     Optimizer = torch.optim.Adam(Model.parameters(), lr=Lr)
 
@@ -109,18 +112,22 @@ if __name__ == "__main__":
         Scheduler = torch.optim.lr_scheduler.__dict__[Scheduler["name"]](
             Optimizer, **Scheduler["params"]
         )
+    exp_name = args.config.replace(".yaml", "")
     EarlyStopCfg = cfg["train"].get("early_stop", {})
+    CheckpointCfg = cfg["train"].get("checkpoint", {})
 
     trainer = Trainer(
         model=Model,
         loss_fn=Loss,
         optimizer=Optimizer,
+        scheduler=Scheduler,
         train_loader=TrainLoader,
         valid_loader=ValidLoader,
         device=Device,
         writer=Writer,
-        scheduler=Scheduler,
-        early_stop_cfg=EarlyStopCfg
+        exp_name=exp_name,
+        early_stop_cfg=EarlyStopCfg,
+        checkpoint_cfg=CheckpointCfg
     )
     
     logger.info("Training config:")
@@ -128,8 +135,19 @@ if __name__ == "__main__":
         logger.info(f"{k}: {v}")
     logger.info("=" * 50)
     
-    # ModelName = trainer.debug(epochs=cfg["train"]["epochs"])
-    ModelName = trainer.training(epochs=cfg["train"]["epochs"])
+    total_epochs = cfg["train"]["epochs"]
+    
+    if args.resume:
+        logger.info(f"Resuming from checkpoint: {args.resume}.")
+        start_epoch, _ = trainer.resume(get_ckpt_path(exp_name, args.resume))
+        remaining_epochs = total_epochs - (start_epoch + 1)
+        logger.info(f"Already trained {start_epoch + 1} epochs, remaining: {remaining_epochs}.")
+        if remaining_epochs <= 0:
+            logger.warning("Training already completed, skipping training.")
+        else:
+            ModelName = trainer.training(epochs=remaining_epochs)
+    else:
+        ModelName = trainer.training(epochs=total_epochs)
 
     # ========== Clearing ==========
     logger.info("=" * 50)
@@ -145,7 +163,8 @@ if __name__ == "__main__":
     # ========== Evaluating ==========
     from app.core.evaluating import Evaluator
     from app.utils.cli import assemble
-    from app.utils.filepath import get_sota_path
+    from app.utils.ckpt import load_ckpt
+    from app.utils.filepath import get_ckpt_path, get_logs_path
 
     logger.info("=" * 50)
     logger.info("7. Evaluating the model......")
@@ -159,11 +178,11 @@ if __name__ == "__main__":
     # Metric = build_metric(cfg["metric"])
     # logger.info(f"Metric: {Metric}.")
 
-    Model = torch.load(get_sota_path(ModelName))
+    Model = build_models(cfg["model"], feature_dim=len(features))
     logger.info(f"Model:\n{Model}.")
 
     logger.info("*" * 50)
-    logger.info("7.2. Loading test data......") 
+    logger.info("7.2. Loading eval data......") 
     
     EvalLoader = build_loader(
         cfg["data"]["evalloader"],
@@ -180,6 +199,13 @@ if __name__ == "__main__":
         logdir = cfg["eval"].get("logdir", "tensorboard")
         Writer = SummaryWriter(log_dir=get_logs_path(logdir))
     
+    exp_name = args.config.replace(".yaml", "")
+    ckpt_name = args.model if args.model else "best.ckpt"
+    load_ckpt(get_ckpt_path(exp_name, ckpt_name), Model, device=Device)
+    logger.info(f"Model loaded from: {ckpt_name}.")
+
+    if torch.cuda.device_count() > 1:
+        Model = torch.nn.DataParallel(Model)
     Model = Model.to(Device)
 
     evaluator = Evaluator(
@@ -196,7 +222,7 @@ if __name__ == "__main__":
     logger.info("=" * 50)
     
     Result = evaluator.evaluating()
-    ComboPath = assemble(Result, ModelName, by=cfg["data"]["evalloader"]["name"], mode="eval")
+    ComboPath = assemble(Result, ckpt_name, by=cfg["data"]["evalloader"]["name"], mode="eval")
 
     # ========== Clearing ==========
     logger.info("=" * 50)
