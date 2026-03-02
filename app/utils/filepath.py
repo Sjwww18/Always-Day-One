@@ -26,6 +26,13 @@ def get_cfgs_path(filename=""):
     return os.path.join(cfgs_dir, filename)
 
 
+def get_ckpt_path(exp_name, filename=""):
+    """Get the path to ckpt/{exp_name}/ directory"""
+    ckpt_dir = os.path.join(get_proj_root(), "ckpt", exp_name)
+    os.makedirs(ckpt_dir, exist_ok=True)
+    return os.path.join(ckpt_dir, filename)
+
+
 def get_data_path(filename=""):
     """Get the path to the data directory (creates directory automatically if it doesn't exist)"""
     data_dir = os.path.join(get_proj_root(), "data")
@@ -47,13 +54,6 @@ def get_logs_path(subdir=""):
     return logs_dir
 
 
-def get_sota_path(filename=""):
-    """Get the path to the sota directory"""
-    sota_dir = os.path.join(get_proj_root(), "sota")
-    os.makedirs(sota_dir, exist_ok=True)  # Ensure directory exists
-    return os.path.join(sota_dir, filename)
-
-
 def get_tabs_path(subdir=""):
     """Get the path to the tables directory"""
     tabs_dir = os.path.join(get_proj_root(), "tabs", subdir)
@@ -65,8 +65,8 @@ def get_test_path(filename=""):
     """Get the path to the test directory"""
     test_dir = os.path.join(get_proj_root(), "test")
     os.makedirs(test_dir, exist_ok=True)  # Ensure directory exists
-    if filename.endswith(".pth"):
-        filename = filename.replace(".pth", ".pkl")
+    if filename.endswith(".ckpt"):
+        filename = filename.replace(".ckpt", ".pkl")
     return os.path.join(test_dir, filename)
 
 
