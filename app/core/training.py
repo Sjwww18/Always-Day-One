@@ -1,6 +1,6 @@
 # app/core/training.py
 
-from tqdm import tqdm 
+from tqdm import tqdm
 from datetime import datetime
 from typing import Any, Callable, Dict, List
 
@@ -90,7 +90,7 @@ class Trainer:
         if self.Writer is not None:
             self.Writer.add_scalar("Loss/Train", avg_loss, self.current_epoch)
             self.Writer.add_scalar("Learning_Rate", self.Optimizer.param_groups[0]["lr"], self.current_epoch)
-        logger.info(f"[Epoch {self.current_epoch}] 训练集平均损失: {avg_loss:.4f}.")
+        logger.info(f"[Epoch {self.current_epoch}] Train Loss: {avg_loss:.6f}.")
         
         return avg_loss
 
@@ -99,16 +99,14 @@ class Trainer:
 
         batch_nums = 0
         total_loss = 0.0
-        all_ypre = []
-        all_y = []
-        all_mask = []
+        
+        all_pred, all_y, all_mask = [], [], []
         
         with torch.no_grad():
-            for key, X, y, mask in tqdm(self.ValidLoader, desc="日期进度"):
+            for key, X, y, mask in tqdm(self.ValidLoader, desc="Valid"):
                 X = torch.from_numpy(X).to(self.Device)
                 y = torch.from_numpy(y).to(self.Device)
-                if mask is not None:
-                    mask = torch.from_numpy(mask).to(self.Device)
+                mask = torch.from_numpy(mask).to(self.Device) if mask is not None else None
                 
                 ypre = self.Model(X)
                 loss = self.Loss(ypre, y, mask=mask)
@@ -120,7 +118,7 @@ class Trainer:
                 total_loss += loss.item()
                 # logger.debug(f"验证批次: {batch_nums}, loss: {loss.item():.4f}, key: {key}.")
                 
-                all_ypre.append(ypre.cpu())
+                all_pred.append(ypre.cpu())
                 all_y.append(y.cpu())
                 if mask is not None:
                     all_mask.append(mask.cpu())
@@ -129,24 +127,24 @@ class Trainer:
         
         metrics = {"val_loss": avg_loss}
         
-        if self.Metric and all_ypre:
-            all_ypre = torch.cat(all_ypre, dim=0)
+        if self.Metric and all_pred:
+            all_pred = torch.cat(all_pred, dim=0)
             all_y = torch.cat(all_y, dim=0)
             all_mask = torch.cat(all_mask, dim=0) if all_mask else None
             
             for metric_fn in self.Metric:
-                metric_name = metric_fn.__name__
-                metric_value = metric_fn(all_ypre, all_y, mask=all_mask)
-                metrics[metric_name] = metric_value.item()
+                name = metric_fn.__name__
+                value = metric_fn(all_pred, all_y)
+                metrics[name] = value.item()
         
-        if self.Writer is not None and avg_loss == avg_loss:
-            self.Writer.add_scalar("Loss/Valid", avg_loss, self.current_epoch)
-            for metric_name, metric_value in metrics.items():
-                if metric_name != "val_loss":
-                    self.Writer.add_scalar(f"Metric/{metric_name}", metric_value, self.current_epoch)
-        
+        if self.Writer is not None:
+            for k, v in metrics.items():
+                if k == "val_loss":
+                    self.Writer.add_scalar("Loss/Valid", v, self.current_epoch)
+                else:
+                    self.Writer.add_scalar(f"Metric/{k}", v, self.current_epoch)
         metric_str = " | ".join([f"{k}: {v:.6f}" for k, v in metrics.items()])
-        logger.info(f"[Epoch {self.current_epoch}] 验证集: {metric_str}.")
+        logger.info(f"[Epoch {self.current_epoch}] Valid: {metric_str}.")
         
         return metrics
 
