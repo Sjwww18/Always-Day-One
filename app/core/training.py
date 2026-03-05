@@ -191,13 +191,15 @@ class Trainer:
 
     def training(self, epochs: int) -> str:
         from app.utils.ckpt import save_ckpt
+        
+        if not hasattr(self, "current_epoch"):
+            self.current_epoch = 0
 
-        self.current_epoch = 0
         best_ckpt_name = None
 
-        for epoch in tqdm(range(epochs), desc="训练进度"):
+        for epoch in tqdm(range(self.current_epoch, epochs), desc="训练进度"):
             self.current_epoch = epoch
-            logger.info(f"[Epoch {epoch+1}/{epochs}] 开始训练......")
+            logger.info(f"===== Epoch {epoch+1}/{epochs} =====")
 
             train_loss = self.trainone()
             valid_metrics = self.validate()
@@ -209,10 +211,11 @@ class Trainer:
 
             if self.Scheduler is not None:
                 self.Scheduler.step()
-
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            
+            # -------- Always Save Latest --------
+            # timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             save_ckpt(
-                path=get_ckpt_path(self.ExpName, f"{timestamp}.ckpt"),
+                path=get_ckpt_path(self.ExpName, "latest.ckpt"),
                 model=self.Model,
                 optimizer=self.Optimizer,
                 scheduler=self.Scheduler,
@@ -220,24 +223,12 @@ class Trainer:
                 best_metric=valid_metrics,
             )
 
-            is_monitor_better = True
-            for monitor in self.monitors:
-                monitor_val = valid_metrics.get(monitor, valid_metrics.get("val_loss"))
-                if monitor == "val_loss":
-                    if monitor_val >= self.best_monitor_vals["val_loss"]:
-                        is_monitor_better = False
-                else:
-                    if monitor_val <= self.best_monitor_vals.get(monitor, float("-inf")):
-                        is_monitor_better = False
-            
-            if is_monitor_better:
-                for monitor in self.monitors:
-                    monitor_val = valid_metrics.get(monitor, valid_metrics.get("val_loss"))
-                    self.best_monitor_vals[monitor] = monitor_val
-                self.patience_counter = 0
-                
-                save_best = self.CheckpointCfg.get("save_best", True)
-                if save_best:
+            # -------- Early Stop --------
+            should_stop = self.update_early_stop(valid_metrics)
+            # -------- Save Best --------
+            if any(valid_metrics.get(m) == self.best_monitor_vals[m]
+                   for m in self.monitors):
+                if self.CheckpointCfg.get("save_best", True):
                     best_ckpt_name = f"best_{self.current_epoch}.ckpt"
                     save_ckpt(
                         path=get_ckpt_path(self.ExpName, best_ckpt_name),
@@ -247,18 +238,15 @@ class Trainer:
                         epoch=self.current_epoch,
                         best_metric=valid_metrics,
                     )
-                    monitor_str = " | ".join([f"{m}: {valid_metrics.get(m, valid_metrics.get('val_loss')):.6f}" for m in self.monitors])
-                    logger.info(f"* 保存最佳模型 (best.ckpt), {monitor_str} *.")
-            else:
-                self.patience_counter += 1
-                logger.info(f"未改进, patience: {self.patience_counter}/{self.patience}.")
-                if self.patience_counter >= self.patience:
-                    logger.info(f"Early stopping triggered at epoch {epoch+1}.")
-                    break
+                    logger.info("* Saved best model *")
+            
+            if should_stop:
+                logger.info(f"Early stopping triggered at epoch {epoch+1}.")
+                break
         
         return best_ckpt_name
 
-    def resume(self, path):
+    def resume(self, path: str):
         from app.utils.ckpt import load_ckpt
         
         start_epoch, best_metric = load_ckpt(
@@ -270,11 +258,15 @@ class Trainer:
         )
         
         self.current_epoch = start_epoch + 1
+        self.patience_counter = 0
         if isinstance(best_metric, dict):
             for m in self.monitors:
                 if m in best_metric:
                     self.best_monitor_vals[m] = best_metric[m]
-        logger.info(f"Resumed from epoch {start_epoch}, best_monitor_vals: {self.best_monitor_vals}.")
+        logger.info(
+            f"Resumed from epoch {start_epoch}."
+            f"best_monitor_vals: {self.best_monitor_vals}."
+        )
         
         return start_epoch, best_metric
 

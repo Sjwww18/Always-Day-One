@@ -149,7 +149,7 @@ if __name__ == "__main__":
         if remaining_epochs <= 0:
             logger.warning("Training already completed, skipping training.")
         else:
-            ModelName = trainer.training(epochs=remaining_epochs)
+            ModelName = trainer.training(epochs=total_epochs)
     else:
         ModelName = trainer.training(epochs=total_epochs)
 
