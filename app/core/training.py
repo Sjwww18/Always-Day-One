@@ -147,6 +147,47 @@ class Trainer:
         logger.info(f"[Epoch {self.current_epoch}] Valid: {metric_str}.")
         
         return metrics
+    
+    def check_improvement(self, metrics: Dict[str, float]) -> Dict[str, bool]:
+        improved = {}
+        for m in self.monitors:
+            current = metrics.get(m)
+            best = self.best_monitor_vals.get(m)
+            if current is None:
+                improved[m] = False
+                continue
+            mode = self.monitor_modes.get(m, "max")
+            if mode == "min":
+                improved[m] = current < best
+            else:
+                improved[m] = current > best
+        return improved
+
+    def update_early_stop(self, metrics: Dict[str, float]) -> bool:
+        """
+        OR improvement rule:
+        """
+        improved_dict = self.check_improvement(metrics)
+        any_improved = any(improved_dict.values())
+        if any_improved:
+            for m, flag in improved_dict.items():
+                if flag:
+                    self.best_monitor_vals[m] = metrics[m]
+            self.patience_counter = 0
+            logger.info(
+                "Improved: " +
+                ", ".join([m for m, v in improved_dict.items() if v])
+            )
+            return False
+        self.patience_counter += 1
+        logger.info(
+            f"No improvement. patience: "
+            f"{self.patience_counter}/{self.patience}"
+        )
+        if self.patience_counter >= self.patience:
+            logger.info("Early stopping triggered.")
+            return True
+        return False
 
     def training(self, epochs: int) -> str:
         from app.utils.ckpt import save_ckpt
