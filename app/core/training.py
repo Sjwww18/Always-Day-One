@@ -41,27 +41,33 @@ class Trainer:
         self.EarlyStopCfg = early_stop_cfg or {}
         self.CheckpointCfg = checkpoint_cfg or {}
 
-        self.patience = self.EarlyStopCfg.get("patience", 10)
+        # -------- Early Stop Config --------
         self.monitors = self.EarlyStopCfg.get("monitor", ["val_loss"])
+        self.patience = self.EarlyStopCfg.get("patience", 10)
         
+        # monitor_modes: {"val_loss": "min", "ic": "max"}
+        self.monitor_modes = self.EarlyStopCfg.get(
+            "monitor_modes",
+            {m: "min" if m == "val_loss" else "max" for m in self.monitors}
+        )
+        
+        self.patience_counter = 0
         self.best_monitor_vals = {}
         for m in self.monitors:
-            if m == "val_loss":
+            if self.monitor_modes.get(m, "max") == "min":
                 self.best_monitor_vals[m] = float("inf")
             else:
                 self.best_monitor_vals[m] = float("-inf")
-        self.patience_counter = 0
 
     def trainone(self) -> float:
         self.Model.train()
         
         batch_nums = 0
         total_loss = 0.0
-        for key, X, y, mask in tqdm(self.TrainLoader, desc="日期进度"):
+        for key, X, y, mask in tqdm(self.TrainLoader, desc="Train"):
             X = torch.from_numpy(X).to(self.Device)
             y = torch.from_numpy(y).to(self.Device)
-            if mask is not None:
-                mask = torch.from_numpy(mask).to(self.Device)
+            mask = torch.from_numpy(mask).to(self.Device) if mask is not None else None
             
             self.Optimizer.zero_grad()
             ypre = self.Model(X)
@@ -81,8 +87,7 @@ class Trainer:
 
         avg_loss = total_loss / max(batch_nums, 1)
 
-        # TensorBoard
-        if self.Writer is not None and avg_loss == avg_loss:
+        if self.Writer is not None:
             self.Writer.add_scalar("Loss/Train", avg_loss, self.current_epoch)
             self.Writer.add_scalar("Learning_Rate", self.Optimizer.param_groups[0]["lr"], self.current_epoch)
         logger.info(f"[Epoch {self.current_epoch}] 训练集平均损失: {avg_loss:.4f}.")
