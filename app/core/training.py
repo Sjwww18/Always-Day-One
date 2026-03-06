@@ -90,7 +90,7 @@ class Trainer:
         if self.Writer is not None:
             self.Writer.add_scalar("Loss/Train", avg_loss, self.current_epoch)
             self.Writer.add_scalar("Learning_Rate", self.Optimizer.param_groups[0]["lr"], self.current_epoch)
-        logger.info(f"[Epoch {self.current_epoch}] Train Loss: {avg_loss:.6f}.")
+        logger.info(f"[Epoch {self.current_epoch+1}] Train Loss: {avg_loss:.6f}.")
         
         return avg_loss
 
@@ -133,7 +133,7 @@ class Trainer:
             all_mask = torch.cat(all_mask, dim=0) if all_mask else None
             
             for metric_fn in self.Metric:
-                name = metric_fn.__name__
+                name = getattr(metric_fn, "name", metric_fn.__name__)
                 value = metric_fn(all_pred, all_y)
                 metrics[name] = value.item()
         
@@ -144,7 +144,7 @@ class Trainer:
                 else:
                     self.Writer.add_scalar(f"Metric/{k}", v, self.current_epoch)
         metric_str = " | ".join([f"{k}: {v:.6f}" for k, v in metrics.items()])
-        logger.info(f"[Epoch {self.current_epoch}] Valid: {metric_str}.")
+        logger.info(f"[Epoch {self.current_epoch+1}] Valid: {metric_str}.")
         
         return metrics
     
@@ -229,7 +229,7 @@ class Trainer:
             if any(valid_metrics.get(m) == self.best_monitor_vals[m]
                    for m in self.monitors):
                 if self.CheckpointCfg.get("save_best", True):
-                    best_ckpt_name = f"best_{self.current_epoch}.ckpt"
+                    best_ckpt_name = f"best_{self.current_epoch+1}.ckpt"
                     save_ckpt(
                         path=get_ckpt_path(self.ExpName, best_ckpt_name),
                         model=self.Model,

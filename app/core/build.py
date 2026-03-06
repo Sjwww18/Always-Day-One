@@ -19,8 +19,11 @@ def build_metric(cfg: dict) -> Callable:
     fn = METRIC_REGISTRY[cfg["name"]]
     params = cfg.get("params", {})
     if params:
-        return partial(fn, **params)
-    return fn
+        metric_fn = partial(fn, **params)
+    else:
+        metric_fn = fn
+    metric_fn.name = cfg["name"]
+    return metric_fn
 
 
 def build_models(cfg: dict, **extra_kwargs) -> nn.Module:
