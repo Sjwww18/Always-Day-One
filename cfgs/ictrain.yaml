@@ -50,8 +50,9 @@ model:
 # Loss configuration
 # ======================
 loss:
-  name: pearsonic
+  name: hybrid
   params: {}
+  # params: {mse_weight: 1.0, ic_weight: 0.2}
 
 
 # ======================
@@ -81,10 +82,11 @@ train:
       gamma: 0.5
   device: cpu
   record: True
-  logdir: tensorboard
+  logdir: ictrain
   early_stop:
     patience: 5
     monitor:
+      - val_loss
       - pearsonic
       - top
   checkpoint:
@@ -99,7 +101,7 @@ train:
 eval:
   device: cpu
   record: True
-  logdir: ic
+  logdir: ictrain
 
 
 # end of cfgs/ictrain.yaml

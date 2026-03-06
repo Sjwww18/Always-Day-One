@@ -80,11 +80,12 @@ train:
       step_size: 5
       gamma: 0.5
   device: cpu
-  record: False
-  logdir: tensorboard
+  record: True
+  logdir: default
   early_stop:
     patience: 5
     monitor:
+      - val_loss
       - pearsonic
       - top
   checkpoint:
@@ -99,7 +100,7 @@ train:
 eval:
   device: cpu
   record: False
-  logdir: tensorboard
+  logdir: default
 
 
 # end of cfgs/default.yaml
