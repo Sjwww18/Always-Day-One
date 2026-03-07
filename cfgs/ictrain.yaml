@@ -33,6 +33,15 @@ data:
   features: fake.pkl
   eqtydata: EqtyData.pkl
 
+# ======================
+# DataLoader configuration
+# ======================
+dataloader:
+  batch_size: 1
+  shuffle: false
+  num_workers: 0
+  pin_memory: false
+
 
 # ======================
 # Model configuration
