@@ -72,15 +72,32 @@ if __name__ == "__main__":
     
     # ========== Loading data ==========
     import app.loader
-    from app.core.build import build_loader
+    from app.core.build import build_dataset, build_loader
     
     logger.info("=" * 50)
     logger.info("4. Loading eval data......")
     
-    EvalLoader = build_loader(
+    EvalDataset = build_dataset(
         cfg["data"]["evalloader"],
         features=features,
         label=label
+    )
+    
+    logger.info("4.1. Building DataLoader......")
+    
+    dataloader_cfg = cfg.get("dataloader", {})
+    batch_size = dataloader_cfg.get("batch_size", 1)
+    num_workers = dataloader_cfg.get("num_workers", 0)
+    pin_memory = dataloader_cfg.get("pin_memory", False)
+    
+    logger.info(f"DataLoader config: batch_size={batch_size}, num_workers={num_workers}, pin_memory={pin_memory}")
+    
+    EvalLoader = build_loader(
+        EvalDataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=pin_memory
     )
     
     # ========== Evaluating ==========

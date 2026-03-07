@@ -65,9 +65,9 @@ class Trainer:
         batch_nums = 0
         total_loss = 0.0
         for key, X, y, mask in tqdm(self.TrainLoader, desc="Train"):
-            X = torch.from_numpy(X).to(self.Device)
-            y = torch.from_numpy(y).to(self.Device)
-            mask = torch.from_numpy(mask).to(self.Device) if mask is not None else None
+            X = X.to(self.Device)
+            y = y.to(self.Device) if y is not None else None
+            mask = mask.to(self.Device) if mask is not None else None
             
             self.Optimizer.zero_grad()
             ypre = self.Model(X)
@@ -104,9 +104,9 @@ class Trainer:
         
         with torch.no_grad():
             for key, X, y, mask in tqdm(self.ValidLoader, desc="Valid"):
-                X = torch.from_numpy(X).to(self.Device)
-                y = torch.from_numpy(y).to(self.Device)
-                mask = torch.from_numpy(mask).to(self.Device) if mask is not None else None
+                X = X.to(self.Device)
+                y = y.to(self.Device) if y is not None else None
+                mask = mask.to(self.Device) if mask is not None else None
                 
                 ypre = self.Model(X)
                 loss = self.Loss(ypre, y, mask=mask)

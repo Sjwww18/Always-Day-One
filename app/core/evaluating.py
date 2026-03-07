@@ -34,10 +34,7 @@ class Evaluator:
             for i, (key, X, y, mask) in enumerate(
                 tqdm(self.EvalLoader, desc="评估日期进度")
             ):
-                X = torch.from_numpy(X).to(self.Device)
-                # y = torch.from_numpy(y).to(self.Device)
-                # if mask is not None:
-                #     mask = torch.from_numpy(mask).to(self.Device)
+                X = X.to(self.Device)
 
                 ypre = self.Model(X)
                 if isinstance(ypre, torch.Tensor):

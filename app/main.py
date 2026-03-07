@@ -68,12 +68,12 @@ if __name__ == "__main__":
 
     # ========== Loading data ==========
     import app.loader
-    from app.core.build import build_loader
+    from app.core.build import build_dataset, build_loader
     
     logger.info("=" * 50)
     logger.info("4.1. Loading valid data......")
     
-    ValidLoader = build_loader(
+    ValidDataset = build_dataset(
         cfg["data"]["validloader"],
         features=features,
         label=label
@@ -81,10 +81,36 @@ if __name__ == "__main__":
 
     logger.info("4.2. Loading train data......")
     
-    TrainLoader = build_loader(
+    TrainDataset = build_dataset(
         cfg["data"]["trainloader"],
         features=features,
         label=label
+    )
+    
+    logger.info("4.3. Building DataLoaders......")
+    
+    dataloader_cfg = cfg.get("dataloader", {})
+    batch_size = dataloader_cfg.get("batch_size", 1)
+    shuffle = dataloader_cfg.get("shuffle", False)
+    num_workers = dataloader_cfg.get("num_workers", 0)
+    pin_memory = dataloader_cfg.get("pin_memory", False)
+    
+    logger.info(f"DataLoader config: batch_size={batch_size}, shuffle={shuffle}, num_workers={num_workers}, pin_memory={pin_memory}")
+    
+    TrainLoader = build_loader(
+        TrainDataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        num_workers=num_workers,
+        pin_memory=pin_memory
+    )
+    
+    ValidLoader = build_loader(
+        ValidDataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=pin_memory
     )
     
     # ========== Training ==========
@@ -188,10 +214,27 @@ if __name__ == "__main__":
     logger.info("*" * 50)
     logger.info("7.2. Loading eval data......") 
     
-    EvalLoader = build_loader(
+    EvalDataset = build_dataset(
         cfg["data"]["evalloader"],
         features=features,
         label=label
+    )
+    
+    logger.info("7.3. Building DataLoader......")
+    
+    dataloader_cfg = cfg.get("dataloader", {})
+    batch_size = dataloader_cfg.get("batch_size", 1)
+    num_workers = dataloader_cfg.get("num_workers", 0)
+    pin_memory = dataloader_cfg.get("pin_memory", False)
+    
+    logger.info(f"DataLoader config: batch_size={batch_size}, num_workers={num_workers}, pin_memory={pin_memory}")
+    
+    EvalLoader = build_loader(
+        EvalDataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=pin_memory
     )
 
     logger.info("*" * 50)
