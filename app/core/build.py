@@ -1,9 +1,9 @@
 # app/core/build.py
 
-import torch.nn as nn
 from typing import Any, Callable, List
 
 import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from app.core.registry import LOADER_REGISTRY, LOSSES_REGISTRY, METRIC_REGISTRY, MODELS_REGISTRY
@@ -17,7 +17,7 @@ def build_dataset(cfg: dict, features: List[str], label: List[str]) -> Any:
     return cls(**params)
 
 
-def build_loader(dataset: Any, batch_size: int = 1, shuffle: bool = False, num_workers: int = 0, pin_memory: bool = False) -> DataLoader:
+def build_loader(dataset: Any, batch_size: int=1, shuffle: bool=False, num_workers: int=0, pin_memory: bool=False) -> DataLoader:
     def collate_fn(batch):
         keys, Xs, ys, masks = zip(*batch)
         X_batch = torch.stack(Xs)
@@ -30,7 +30,6 @@ def build_loader(dataset: Any, batch_size: int = 1, shuffle: bool = False, num_w
         else:
             mask_batch = None
         return keys, X_batch, y_batch, mask_batch
-    
     data_loader = DataLoader(
         dataset,
         batch_size=batch_size,
@@ -39,10 +38,8 @@ def build_loader(dataset: Any, batch_size: int = 1, shuffle: bool = False, num_w
         pin_memory=pin_memory,
         collate_fn=collate_fn
     )
-    
     if hasattr(dataset, 'process'):
         data_loader.process = dataset.process
-    
     return data_loader
 
 

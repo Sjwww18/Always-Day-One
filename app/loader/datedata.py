@@ -2,7 +2,6 @@
 
 import numpy as np
 import pandas as pd
-from datetime import datetime
 from typing import List, Optional, Tuple
 
 import torch
@@ -93,7 +92,6 @@ class DateLoader(Dataset):
         date = key[0]
         if isinstance(date, str):
             date = pd.to_datetime(date)
-        
         return self.data[(date,)]
 
 

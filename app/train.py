@@ -90,27 +90,27 @@ if __name__ == "__main__":
     logger.info("4.3. Building DataLoaders......")
     
     dataloader_cfg = cfg.get("dataloader", {})
-    batch_size = dataloader_cfg.get("batch_size", 1)
-    shuffle = dataloader_cfg.get("shuffle", False)
-    num_workers = dataloader_cfg.get("num_workers", 0)
-    pin_memory = dataloader_cfg.get("pin_memory", False)
+    BatchSize = dataloader_cfg.get("batch_size", 1)
+    Shuffle = dataloader_cfg.get("shuffle", False)
+    NumWorkers = dataloader_cfg.get("num_workers", 0)
+    PinMemory = dataloader_cfg.get("pin_memory", False)
     
-    logger.info(f"DataLoader config: batch_size={batch_size}, shuffle={shuffle}, num_workers={num_workers}, pin_memory={pin_memory}")
+    logger.info(f"DataLoader config: batch_size={BatchSize}, shuffle={Shuffle}, num_workers={NumWorkers}, pin_memory={PinMemory}")
     
     TrainLoader = build_loader(
         TrainDataset,
-        batch_size=batch_size,
-        shuffle=shuffle,
-        num_workers=num_workers,
-        pin_memory=pin_memory
+        batch_size=BatchSize,
+        shuffle=Shuffle,
+        num_workers=NumWorkers,
+        pin_memory=PinMemory
     )
     
     ValidLoader = build_loader(
         ValidDataset,
-        batch_size=batch_size,
+        batch_size=BatchSize,
         shuffle=False,
-        num_workers=num_workers,
-        pin_memory=pin_memory
+        num_workers=NumWorkers,
+        pin_memory=PinMemory
     )
     
     # ========== Training ==========

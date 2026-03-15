@@ -35,6 +35,8 @@ class Evaluator:
                 tqdm(self.EvalLoader, desc="评估日期进度")
             ):
                 X = X.to(self.Device)
+                # y = y.to(self.Device) if y is not None else None
+                # mask = mask.to(self.Device) if mask is not None else None
 
                 ypre = self.Model(X)
                 if isinstance(ypre, torch.Tensor):

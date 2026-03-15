@@ -89,11 +89,10 @@ class IntervalLoader(Dataset):
             y_np = y
         return torch.tensor(y_np.reshape(1, -1), dtype=torch.float32)
 
-    def get_batch(self, key: Tuple[datetime, int]) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[torch.Tensor]]:
+    def get_batch(self, key: Tuple[str, int]) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[torch.Tensor]]:
         date, interval = key
         if isinstance(date, str):
             date = pd.to_datetime(date)
-
         return self.data[(date, interval)]
 
 
