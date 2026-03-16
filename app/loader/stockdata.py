@@ -1,4 +1,4 @@
-# app/loader/datedata.py
+# app/loader/stockdata.py
 
 import gc
 import numpy as np
@@ -12,16 +12,17 @@ from app.core.registry import register_loader
 from app.utils.filepath import get_data_path
 
 
-@register_loader("date")
-class DateLoader(Dataset):
+@register_loader("stock")
+class StockLoader(Dataset):
     """
-    Date-level cross-sectional dataset.
+    Stock-level dataset for CNN / sequence models.
 
-    One batch corresponds to one date:
-        X: [N_stock * M_interval, F_feature]
-        y: [N_stock * M_interval, L_label] or None
-        mask: [N_stock * M_interval, L_label], 1 if label valid else 0
+    One sample corresponds to one (date, stock):
+        X: [51, F_feature]
+        y: [51, L_label] or None
+        mask: [51, L_label], 1 if label valid else 0
     """
+
     def __init__(
         self,
         file: str,
@@ -32,7 +33,7 @@ class DateLoader(Dataset):
         normalize: Optional[str] = None,
     ):
         path = get_data_path(file)
-        cols = ["date", "interval"] + features + label
+        cols = ["date", "stock", "interval"] + features + label
         df = pd.read_parquet(path, engine="pyarrow", columns=cols)
 
         self.label = label
@@ -43,10 +44,8 @@ class DateLoader(Dataset):
         if dffilter is not None:
             df = df.query(dffilter)
 
-        # 特征先转 float32
         Xdf = df[self.features].astype(np.float32)
 
-        # fill + normalize 都按 (date, interval) 做
         if self.fillna == "zero":
             Xdf = Xdf.fillna(np.float32(0.0))
         elif self.fillna == "mean":
@@ -57,38 +56,26 @@ class DateLoader(Dataset):
         if self.normalize == "zscore":
             grouped = pd.concat([df[["date", "interval"]], Xdf], axis=1).groupby(["date", "interval"])[self.features]
             mean_df = grouped.transform("mean").astype(np.float32)
-            std_df = grouped.transform("std").astype(np.float32)
-            std_df = std_df.replace(0.0, 1.0)
+            std_df = grouped.transform("std").astype(np.float32).replace(0.0, 1.0)
             Xdf = (Xdf - mean_df) / std_df
 
         self.all_X = Xdf.to_numpy(dtype=np.float32, copy=False)
         self.all_y = df[self.label].to_numpy(dtype=np.float32, copy=False) if self.label else None
 
-        # date 已经排好序，直接找连续块
-        date_arr = df["date"].to_numpy()
-        n = len(date_arr)
+        key_df = df[["date", "stock"]]
+        self.keys = [tuple(x) for x in key_df.to_numpy()[::51]]
+        self.n_samples = len(self.keys)
 
-        change = np.empty(n, dtype=bool)
-        change[0] = True
-        change[1:] = date_arr[1:] != date_arr[:-1]
-
-        starts = np.flatnonzero(change)
-        ends = np.empty_like(starts)
-        ends[:-1] = starts[1:]
-        ends[-1] = n
-
-        self.keys = date_arr[starts].tolist()
-        self.slices = list(zip(starts.tolist(), ends.tolist()))
-
-        del df, Xdf, date_arr, change, starts, ends
+        del df, Xdf, key_df
         gc.collect()
 
     def __len__(self) -> int:
-        return len(self.keys)
+        return self.n_samples
 
     def __getitem__(self, idx: int) -> Tuple[Tuple, torch.Tensor, Optional[torch.Tensor], Optional[torch.Tensor]]:
+        start = idx * 51
+        end = start + 51
         key = self.keys[idx]
-        start, end = self.slices[idx]
 
         X = torch.from_numpy(self.all_X[start:end])
 
@@ -99,14 +86,14 @@ class DateLoader(Dataset):
             y = None
             mask = None
 
-        return (key,), X, y, mask
+        return key, X, y, mask
 
     def process(self, y: torch.Tensor) -> torch.Tensor:
         if isinstance(y, torch.Tensor):
             y_np = y.cpu().numpy()
         else:
             y_np = y
-        return torch.tensor(y_np.reshape(-1, 51).T, dtype=torch.float32)
+        return torch.tensor(y_np.reshape(1, -1), dtype=torch.float32)
 
 
-# end of app/loader/datedata.py
+# end of app/loader/stockdata.py
