@@ -85,12 +85,12 @@ if __name__ == "__main__":
     
     logger.info("4.1. Building DataLoader......")
     
-    dataloader_cfg = cfg.get("dataloader", {})
-    BatchSize = dataloader_cfg.get("batch_size", 1)
-    NumWorkers = dataloader_cfg.get("num_workers", 0)
-    PinMemory = dataloader_cfg.get("pin_memory", False)
+    # Set Eval Loader Config
+    BatchSize = 1
+    NumWorkers = 0
+    PinMemory = False
     
-    logger.info(f"DataLoader config: batch_size={BatchSize}, num_workers={NumWorkers}, pin_memory={PinMemory}")
+    logger.info(f"DataLoader config: batch_size={BatchSize}, num_workers={NumWorkers}, pin_memory={PinMemory} (eval fixed)")
     
     EvalLoader = build_loader(
         EvalDataset,

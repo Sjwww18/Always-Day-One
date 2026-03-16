@@ -115,7 +115,7 @@ if __name__ == "__main__":
     
     # ========== Training ==========
     from app.core.training import Trainer
-    from app.utils.filepath import get_logs_path
+    from app.utils.filepath import get_ckpt_path, get_logs_path
 
     logger.info("=" * 50)
     logger.info("5. Training the model......")
@@ -194,7 +194,6 @@ if __name__ == "__main__":
     from app.core.evaluating import Evaluator
     from app.utils.cli import assemble
     from app.utils.ckpt import load_ckpt
-    from app.utils.filepath import get_ckpt_path, get_logs_path
 
     logger.info("=" * 50)
     logger.info("7. Evaluating the model......")

@@ -29,6 +29,9 @@ def build_loader(dataset: Any, batch_size: int=1, shuffle: bool=False, num_worke
             mask_batch = torch.stack(masks)
         else:
             mask_batch = None
+        # 当 batch_size=1 时，返回单个 key 而不是 tuple
+        if len(keys) == 1:
+            keys = keys[0]
         return keys, X_batch, y_batch, mask_batch
     data_loader = DataLoader(
         dataset,
