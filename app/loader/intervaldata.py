@@ -1,5 +1,7 @@
 # app/loader/intervaldata.py
 
+import gc
+import warnings
 import numpy as np
 import pandas as pd
 from datetime import datetime
@@ -20,8 +22,8 @@ class IntervalLoader(Dataset):
 
     One batch corresponds to one (date, interval):
         X: [N_stock, F_feature]
-        y: [N_stock, 1] or None (test)
-        mask: [N_stock, 1], 1 if label valid else 0
+        y: [N_stock, L_label] or None (test)
+        mask: [N_stock, L_label], 1 if label valid else 0
     """
     def __init__(
         self,
@@ -44,42 +46,54 @@ class IntervalLoader(Dataset):
         if dffilter is not None:
             df = df.query(dffilter)
 
-        self.data = {}
-        for (d, itv), g in df.groupby(["date", "interval"], sort=False):
-            X = g[self.features]
-            
-            if self.fillna == "zero":
-                X = X.fillna(0.0)
-            elif self.fillna == "mean":
-                X = X.fillna(X.mean(axis=0))
-            
-            X = X.to_numpy(dtype="float32")
-            
-            if self.normalize == "zscore":
-                X = zscore(X)
-            
-            if self.label:
-                y = g[self.label].to_numpy(dtype="float32").reshape(-1, 1)
-                mask = (~np.isnan(y)).astype("float32")
-            else:
-                y = None
-                mask = None
-            
-            X_tensor = torch.tensor(X, dtype=torch.float32)
-            y_tensor = torch.tensor(y, dtype=torch.float32) if y is not None else None
-            mask_tensor = torch.tensor(mask, dtype=torch.float32) if mask is not None else None
-            
-            self.data[(d, itv)] = (X_tensor, y_tensor, mask_tensor)
+        # 先获取 group 索引（用于后续按 group 标准化）
+        group_indices = df.groupby(["date", "interval"], sort=False).indices
+        self.keys = list(group_indices.keys())
+        self.row_indices = [group_indices[k] for k in self.keys]
+        self.key_to_idx = {k: i for i, k in enumerate(self.keys)}
+
+        # 转换为 numpy 数组
+        X = df[self.features].values.astype(np.float32)
+        y = df[self.label].values.astype(np.float32) if self.label else None
+
+        # 按 group 进行 fillna 和 normalize
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=RuntimeWarning)
+            for row_ids in self.row_indices:
+                if self.fillna == "zero":
+                    X[row_ids] = np.nan_to_num(X[row_ids], nan=0.0)
+                elif self.fillna == "mean":
+                    group_mean = np.nanmean(X[row_ids], axis=0, keepdims=True)
+                    nan_mask = np.isnan(X[row_ids])
+                    X[row_ids] = np.where(nan_mask, group_mean, X[row_ids])
+                    X[row_ids] = np.nan_to_num(X[row_ids], nan=0.0)
+
+                if self.normalize == "zscore":
+                    X[row_ids] = zscore(X[row_ids], axis=0)
+
+        self.all_X = X
+        self.all_y = y
         
-        self.keys = list(self.data.keys())
         del df
+        gc.collect()
 
     def __len__(self) -> int:
         return len(self.keys)
 
     def __getitem__(self, idx: int) -> Tuple[Tuple[datetime, int], torch.Tensor, Optional[torch.Tensor], Optional[torch.Tensor]]:
         key = self.keys[idx]
-        X, y, mask = self.data[key]
+        row_ids = self.row_indices[idx]
+        
+        # 按行索引取出当前 (date, interval) 的截面数据（fancy indexing 会产生拷贝）
+        X = torch.from_numpy(self.all_X[row_ids])
+        
+        if self.all_y is not None:
+            y = torch.from_numpy(self.all_y[row_ids])
+            mask = (~torch.isnan(y)).float()
+        else:
+            y = None
+            mask = None
+        
         return key, X, y, mask
     
     def process(self, y: torch.Tensor) -> torch.Tensor:
@@ -93,7 +107,15 @@ class IntervalLoader(Dataset):
         date, interval = key
         if isinstance(date, str):
             date = pd.to_datetime(date)
-        return self.data[(date, interval)]
+        
+        idx = self.key_to_idx[(date, interval)]
+        row_ids = self.row_indices[idx]
+        
+        X = torch.from_numpy(self.all_X[row_ids])
+        y = torch.from_numpy(self.all_y[row_ids]) if self.all_y is not None else None
+        mask = (~torch.isnan(y)).float() if y is not None else None
+        
+        return X, y, mask
 
 
 # end of app/loader/intervaldata.py
