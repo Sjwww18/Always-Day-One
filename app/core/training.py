@@ -118,10 +118,10 @@ class Trainer:
                 total_loss += loss.item()
                 # logger.debug(f"验证批次: {batch_nums}, loss: {loss.item():.4f}, key: {key}.")
                 
-                all_pred.append(ypre.cpu())
-                all_y.append(y.cpu())
+                all_pred.append(ypre.detach().cpu())
+                all_y.append(y.detach().cpu())
                 if mask is not None:
-                    all_mask.append(mask.cpu())
+                    all_mask.append(mask.detach().cpu())
 
         avg_loss = total_loss / max(batch_nums, 1)
         
@@ -134,7 +134,7 @@ class Trainer:
             
             for metric_fn in self.Metric:
                 name = getattr(metric_fn, "name", metric_fn.__name__)
-                value = metric_fn(all_pred, all_y)
+                value = metric_fn(all_pred, all_y, mask=all_mask)
                 metrics[name] = value.item()
         
         if self.Writer is not None:
