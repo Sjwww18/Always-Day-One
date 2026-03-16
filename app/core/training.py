@@ -65,9 +65,9 @@ class Trainer:
         batch_nums = 0
         total_loss = 0.0
         for key, X, y, mask in tqdm(self.TrainLoader, desc="Train"):
-            X = X.to(self.Device)
-            y = y.to(self.Device) if y is not None else None
-            mask = mask.to(self.Device) if mask is not None else None
+            X = X.to(self.Device, non_blocking=True)
+            y = y.to(self.Device, non_blocking=True) if y is not None else None
+            mask = mask.to(self.Device, non_blocking=True) if mask is not None else None
             
             self.Optimizer.zero_grad()
             ypre = self.Model(X)
