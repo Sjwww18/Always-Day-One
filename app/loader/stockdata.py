@@ -77,10 +77,10 @@ class StockLoader(Dataset):
         end = start + 51
         key = self.keys[idx]
 
-        X = torch.from_numpy(self.all_X[start:end])
+        X = torch.from_numpy(self.all_X[start: end])
 
         if self.all_y is not None:
-            y = torch.from_numpy(self.all_y[start:end])
+            y = torch.from_numpy(self.all_y[start: end])
             mask = (~torch.isnan(y)).float()
         else:
             y = None
@@ -93,7 +93,7 @@ class StockLoader(Dataset):
             y_np = y.cpu().numpy()
         else:
             y_np = y
-        return torch.tensor(y_np.reshape(1, -1), dtype=torch.float32)
+        return torch.tensor(y_np.squeeze(-1), dtype=torch.float32)
 
 
 # end of app/loader/stockdata.py
