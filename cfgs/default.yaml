@@ -48,11 +48,11 @@ dataloader:
 # Model configuration
 # ======================
 model:
-  name: mlp
+  name: linear
   params:
     # feature_dim: 450
-    hidden_dims: [32]
-    dropout: 0.1
+    # hidden_dims: [32]
+    # dropout: 0.1
     init: xavier   # Reserved: xavier / normal / kaiming
 
 

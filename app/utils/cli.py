@@ -41,6 +41,24 @@ def assemble(result: List[Tuple[Tuple[Any], np.ndarray]], modelname: str, by: st
             names=["date", "interval"]
         )
     
+    # ===== stock 级 =====
+    elif by == "stock":
+        N = len(EqtyData)
+        D = len(result) // N
+        KEYS, VALS = zip(*result)
+        DATES, STOCKS = zip(*KEYS)
+        VALS = np.stack(VALS, axis=0)  # (D * N, 51)
+        
+        # reshape -> (D, N, 51) -> (D*51, N)
+        COMBO_np = VALS.reshape(D, N, 51).transpose(0, 2, 1).reshape(D * 51, N)
+        
+        DATES_np = np.repeat(sorted(set(DATES)), 51)
+        INDEX_np = np.tile(np.arange(51), D)
+        idx = pd.MultiIndex.from_arrays(
+            [DATES_np, INDEX_np],
+            names=["date", "interval"]
+        )
+    
     # ===== 未定义 级 =====
     else:
         raise ValueError(f"Unknown by mode: {by}.")
