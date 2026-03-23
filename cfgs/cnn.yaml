@@ -61,7 +61,7 @@ model:
 # Loss configuration
 # ======================
 loss:
-  name: hybrid
+  name: mse
   params: {}
 
 

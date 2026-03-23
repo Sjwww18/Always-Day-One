@@ -21,20 +21,16 @@ class MSELoss(nn.Module):
         Returns:
             scalar loss tensor
         """
-        # flatten
-        y_pred = y_pred.view(-1)
-        y_true = y_true.view(-1)
+        diff = y_pred - y_true  # (B, T, 1)
 
-        # apply mask if provided
         if mask is not None:
-            mask = mask.view(-1).bool()
-            y_pred = y_pred[mask]
-            y_true = y_true[mask]
-        
-        if y_pred.numel() < 2:
-            return y_pred.sum() * 0.0
+            mask = mask.bool()
+            diff = diff[mask]
 
-        return self.loss(y_pred, y_true)
+        if diff.numel() < 2:
+            return diff.sum() * 0.0
+
+        return (diff ** 2).mean()
 
 
 # end of app/losses/mse.py
