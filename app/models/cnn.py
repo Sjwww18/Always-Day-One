@@ -29,7 +29,7 @@ class ConvBlock(nn.Module):
         self.padding_type = padding_type
 
         self.conv = nn.Conv1d(in_ch, out_ch, kernel_size, dilation=dilation)
-        self.act = nn.GELU()
+        self.act = nn.SiLU()
         self.dropout = nn.Dropout(dropout) if dropout > 0 else nn.Identity()
 
         self.res = (
