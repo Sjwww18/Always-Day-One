@@ -23,13 +23,14 @@ class BatchMSELoss(nn.Module):
         Returns:
             scalar loss tensor (mean MSE across intervals)
         """
-        y_pred = y_pred.squeeze(-1)
-        y_true = y_true.squeeze(-1)
+        B, S, T, _ = y_pred.shape
+        y_pred = y_pred.squeeze(-1).reshape(B * S, T)  # (N_stock, N_interval)
+        y_true = y_true.squeeze(-1).reshape(B * S, T)  # (N_stock, N_interval)
 
         se = (y_pred - y_true) ** 2
 
         if mask is not None:
-            mask = mask.squeeze(-1)
+            mask = mask.squeeze(-1).reshape(B * S, T)  # (N_stock, N_interval)
             se = se * mask
             mse_per_interval = se.sum(dim=0) / (mask.sum(dim=0) + 1e-8)
         else:

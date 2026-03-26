@@ -24,11 +24,12 @@ class BatchICLoss(nn.Module):
         Returns:
             scalar loss tensor (negative mean IC across intervals)
         """
-        y_pred = y_pred.squeeze(-1)  # (N_stock, N_interval)
-        y_true = y_true.squeeze(-1)  # (N_stock, N_interval)
+        B, S, T, _ = y_pred.shape
+        y_pred = y_pred.squeeze(-1).reshape(B * S, T)  # (N_stock, N_interval)
+        y_true = y_true.squeeze(-1).reshape(B * S, T)  # (N_stock, N_interval)
 
         if mask is not None:
-            mask = mask.squeeze(-1)  # (N_stock, N_interval)
+            mask = mask.squeeze(-1).reshape(B * S, T)  # (N_stock, N_interval)
             y_pred = y_pred * mask
             y_true = y_true * mask
             n_valid = mask.sum(dim=0)  # (N_interval,)
