@@ -29,6 +29,7 @@ class ConvBlock(nn.Module):
         self.padding_type = padding_type
 
         self.conv = nn.Conv1d(in_ch, out_ch, kernel_size, dilation=dilation)
+        self.norm = nn.GroupNorm(num_groups=3, num_channels=in_ch)
         self.act = nn.SiLU()
         self.dropout = nn.Dropout(dropout) if dropout > 0 else nn.Identity()
 
@@ -47,6 +48,7 @@ class ConvBlock(nn.Module):
         else:
             x = F.pad(x, (pad_left, 0), mode="constant", value=0.0)
 
+        x = self.norm(x)
         x = self.conv(x)
         x = self.act(x)
         x = self.dropout(x)
