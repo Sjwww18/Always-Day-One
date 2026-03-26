@@ -48,7 +48,7 @@ dataloader:
 # Model configuration
 # ======================
 model:
-  name: cnn2d
+  name: cnn1d
   params:
     hidden_channels: [64]
     kernel_size: 6
@@ -61,7 +61,7 @@ model:
 # Loss configuration
 # ======================
 loss:
-  name: mse
+  name: bhybrid
   params: {}
 
 
@@ -93,7 +93,7 @@ train:
       eta_min: 0.00001
   device: cpu
   record: True
-  logdir: linear
+  logdir: cnn1d
   early_stop:
     patience: 5
     monitor:
@@ -113,7 +113,7 @@ train:
 eval:
   device: cpu
   record: False
-  logdir: linear
+  logdir: cnn1d
 
 
 # end of cfgs/cnn.yaml
