@@ -38,45 +38,41 @@ class StockLoader(Dataset):
         n = len(X)
         assert n % 51 == 0
         
+        S = 3
+        T = 51
         F = len(features)
-        N = n // 51  # = D * 5171
-        X = X.reshape(N, 51, F)  # [D * N, T, F]
-
-        # ===== fillna =====
-        if fillna == "mean":
-            N_stock = 5171
-            D = N // N_stock
-            X4 = X.reshape(D, N_stock, 51, F)
-
-            mask = np.isnan(X4)
-            mean = np.nanmean(X4, axis=1, keepdims=True)
-            X4 = np.where(mask, mean, X4)
-            np.nan_to_num(X4, nan=0.0, copy=False)
-            X = X4.reshape(N, 51, F)
-        elif fillna == "zero":
-            np.nan_to_num(X, nan=0.0, copy=False)
+        N = n // T  # = D * 5171
+        D = N // S  # = date num, 3 is for debug
+        X = X.reshape(D, S, T, F)  # [D, S, T, F], (date, stock, interval, feature)
+        X = X.transpose(0, 1, 3, 2)  # (D, S, F, T)
 
         # ===== zscore =====
         if normalize == "zscore":
-            N_stock = 5171
-            D = N // N_stock
-            X4 = X.reshape(D, N_stock, 51, F)
+            mean = np.nanmean(X, axis=1, keepdims=True)
+            std = np.nanstd(X, axis=1, keepdims=True)
+            std[(std == 0) | np.isnan(std)] = 1.0
+            X -= mean
+            X /= std
 
-            mean = X4.mean(axis=1, keepdims=True)
-            std = X4.std(axis=1, keepdims=True)
-            std[std == 0] = 1.0
-            X4 = (X4 - mean) / std
-            X = X4.reshape(N, 51, F)
+        # ===== fillna =====
+        if fillna == "mean":
+            mask = np.isnan(X)
+            mean = np.nanmean(X, axis=1, keepdims=True)
+            X = np.where(mask, mean, X)
+            np.nan_to_num(X, nan=0.0, copy=False)
+        elif fillna == "zero":
+            np.nan_to_num(X, nan=0.0, copy=False)
 
         self.X = torch.from_numpy(X)
 
         # ===== y =====
         if label:
             y = df[label].to_numpy(dtype=np.float32, copy=False)
-            y = y.reshape(N, 51, -1)
+            y = y.reshape(D, S, T, -1)  # (D, S, T, 1)
+            # y = y.transpose(0, 1, 3, 2)  # (D, S, F, T)
 
             mask = ~np.isnan(y)
-            y = np.nan_to_num(y, nan=0.0)
+            np.nan_to_num(y, nan=0.0, copy=False)
 
             self.y = torch.from_numpy(y)
             self.mask = torch.from_numpy(mask.astype(np.float32))
@@ -85,11 +81,10 @@ class StockLoader(Dataset):
             self.mask = None
 
         # ===== key =====
-        self.keys = df[["date", "stock"]].to_numpy()[:: 51]
-        self.n_samples = N
+        self.keys = df["date"].to_numpy()[:: S * T]
+        self.n_samples = D
 
         del df
-        gc.collect()
 
     def __len__(self):
         return self.n_samples
