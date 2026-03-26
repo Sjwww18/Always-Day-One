@@ -38,7 +38,7 @@ class ConvBlock(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # x: (B, C, T)
+        # x: (B * S, F, T)
         res = self.res(x)
 
         pad_left = (self.kernel_size - 1) * self.dilation
@@ -54,12 +54,12 @@ class ConvBlock(nn.Module):
         return x + res
 
 
-@register_models("cnn2d")
-class CNN2D(nn.Module):
+@register_models("cnn1d")
+class CNN1D(nn.Module):
     """
-    x: (B, T, F)
+    x: (B, S, F, T)
     
-    score: (B, T, 1)
+    score: (B, S, T, 1)
     """
     def __init__(
         self,
@@ -67,7 +67,7 @@ class CNN2D(nn.Module):
         hidden_channels: List[int]=[64],
         kernel_size: int=6,
         dropout: float=0.0,
-        init: str="kaiming",
+        init: str="xavier",
         padding_type: str="zero",
         dilation: List[int]=None
     ):
@@ -112,15 +112,17 @@ class CNN2D(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        x: (B, T, F)
+        x: (B, S, F, T)
         """
-        x = x.transpose(1, 2)  # (B, F, T)
+        B, S, F, T = x.shape  # B = 1
+        x = x.view(B * S, F, T)
 
         for block in self.blocks:
             x = block(x)
 
-        x = self.head(x)  # (B, 1, T)
-        x = x.transpose(1, 2)  # (B, T, 1)
+        x = self.head(x)  # (B * S, 1, T)
+        x = x.view(B, S, 1, T)
+        x = x.transpose(2, 3)  # (B, S, T, 1)
 
         return x
 
