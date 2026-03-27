@@ -43,8 +43,8 @@ class BatchICLoss(nn.Module):
         true_centered = (y_true - true_mean) * mask  # (N_stock, N_interval)
 
         cov = (pred_centered * true_centered).sum(dim=0) / (count + self.eps)  # (N_interval,)
-        std_pred = torch.sqrt((pred_centered ** 2).sum(dim=0) / (count + self.eps))  # (N_interval,)
-        std_true = torch.sqrt((true_centered ** 2).sum(dim=0) / (count + self.eps))  # (N_interval,)
+        std_pred = torch.sqrt((pred_centered ** 2).sum(dim=0) / (count + self.eps) + self.eps)  # (N_interval,)
+        std_true = torch.sqrt((true_centered ** 2).sum(dim=0) / (count + self.eps) + self.eps)  # (N_interval,)
 
         denom = std_pred * std_true  # (N_interval,)
         valid = (count > 0) & (denom > self.eps)  # (N_interval,)
