@@ -64,6 +64,7 @@ class Trainer:
         
         batch_nums = 0
         total_loss = 0.0
+        steps_per_epoch = len(self.TrainLoader)
         for key, X, y, mask in tqdm(self.TrainLoader, desc="Train"):
             X = X.to(self.Device, non_blocking=True)
             y = y.to(self.Device, non_blocking=True) if y is not None else None
@@ -78,7 +79,17 @@ class Trainer:
                 continue
             
             loss.backward()
-            # torch.nn.utils.clip_grad_norm_(self.Model.parameters(), max_norm=1.0)
+
+            if self.Writer is not None:
+                global_step = self.current_epoch * steps_per_epoch + batch_nums
+                self.Writer.add_scalar("Batch/Loss", loss.item(), global_step)
+                for name, param in self.Model.named_parameters():
+                    if param.grad is not None:
+                        grad_norm = param.grad.norm(2).item()
+                        tag = f"Gradients_Norm/{name.replace('.', '/')}"
+                        self.Writer.add_scalar(tag, grad_norm, global_step)
+
+            torch.nn.utils.clip_grad_norm_(self.Model.parameters(), max_norm=1.0)
             self.Optimizer.step()
 
             batch_nums += 1
