@@ -32,11 +32,12 @@ class BatchMSELoss(nn.Module):
         if mask is not None:
             mask = mask.squeeze(-1).reshape(B * S, T)  # (N_stock, N_interval)
             se = se * mask
-            mse_per_interval = se.sum(dim=0) / (mask.sum(dim=0) + 1e-8)
-        else:
-            mse_per_interval = se.mean(dim=0)
+            se_sum = se.sum(dim=0)  # (N_interval,)
+            count = mask.sum(dim=0)  # (N_interval,)
+            valid = count > 0  # (N_interval,)
+            return (se_sum[valid] / count[valid]).mean()
 
-        return mse_per_interval.mean()
+        return se.mean()
 
 
 # end of app/losses/bmse.py

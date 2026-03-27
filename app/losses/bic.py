@@ -32,22 +32,28 @@ class BatchICLoss(nn.Module):
             mask = mask.squeeze(-1).reshape(B * S, T)  # (N_stock, N_interval)
             y_pred = y_pred * mask
             y_true = y_true * mask
-            n_valid = mask.sum(dim=0)  # (N_interval,)
+            count = mask.sum(dim=0)  # (N_interval,)
         else:
-            n_valid = y_pred.shape[0]  # scalar
+            count = y_pred.shape[0]  # scalar
 
-        pred_mean = y_pred.sum(dim=0) / (n_valid + self.eps)  # (N_interval,)
-        true_mean = y_true.sum(dim=0) / (n_valid + self.eps)  # (N_interval,)
+        pred_mean = y_pred.sum(dim=0) / (count + self.eps)  # (N_interval,)
+        true_mean = y_true.sum(dim=0) / (count + self.eps)  # (N_interval,)
 
-        pred_centered = y_pred - pred_mean  # (N_stock, N_interval)
-        true_centered = y_true - true_mean  # (N_stock, N_interval)
+        pred_centered = (y_pred - pred_mean) * mask  # (N_stock, N_interval)
+        true_centered = (y_true - true_mean) * mask  # (N_stock, N_interval)
 
-        cov = (pred_centered * true_centered).sum(dim=0) / (n_valid + self.eps)  # (N_interval,)
-        std_pred = torch.sqrt((pred_centered ** 2).sum(dim=0) / (n_valid + self.eps))  # (N_interval,)
-        std_true = torch.sqrt((true_centered ** 2).sum(dim=0) / (n_valid + self.eps))  # (N_interval,)
+        cov = (pred_centered * true_centered).sum(dim=0) / (count + self.eps)  # (N_interval,)
+        std_pred = torch.sqrt((pred_centered ** 2).sum(dim=0) / (count + self.eps))  # (N_interval,)
+        std_true = torch.sqrt((true_centered ** 2).sum(dim=0) / (count + self.eps))  # (N_interval,)
 
-        ic = cov / (std_pred * std_true)  # (N_interval,)
-        return -ic.mean()
+        denom = std_pred * std_true  # (N_interval,)
+        valid = (count > 0) & (denom > self.eps)  # (N_interval,)
+        
+        if valid.any():
+            ic = cov[valid] / denom[valid]
+            return -ic.mean()
+        
+        return torch.tensor(0.0, device=y_pred.device)
 
 
 # end of app/losses/bic.py
