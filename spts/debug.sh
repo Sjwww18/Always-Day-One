@@ -10,7 +10,8 @@ set -eux
 cd "C:/Users/admin/Desktop/SJW"
 
 # CONFIG=ictrain.yaml
-CONFIG=cnn.yaml
+# CONFIG=linear.yaml
+CONFIG=cnncs.yaml
 
 
 echo "===== TRAIN START $(date) ====="

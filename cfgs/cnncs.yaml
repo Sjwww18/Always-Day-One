@@ -1,0 +1,123 @@
+# cfgs/cnncs.yaml
+
+# ======================
+# Data configuration
+# ======================
+data:
+  trainloader:
+    name: stock
+    params:
+      file: fake_data.parquet
+      fillna: zero
+      dffilter: null
+      normalize: null
+
+  validloader:
+    name: stock
+    params:
+      file: fake_data.parquet
+      fillna: zero
+      dffilter: null
+      normalize: null
+
+  evalloader:
+    name: stock
+    params:
+      file: fake_data.parquet
+      fillna: zero
+      dffilter: null
+      normalize: null
+
+  label:
+    - y
+  features: fake.pkl
+  eqtydata: EqtyData.pkl
+
+
+# ======================
+# DataLoader configuration
+# ======================
+dataloader:
+  batch_size: 1
+  shuffle: false
+  num_workers: 0
+  pin_memory: false
+
+
+# ======================
+# Model configuration
+# ======================
+model:
+  name: cnn1d_attention
+  params:
+    hidden_channels: [64]
+    kernel_size: 6
+    dropout: 0.0
+    init: xavier
+    padding_type: zero
+    cs_type: attention
+    cs_kwargs:
+      heads: 4
+      dropout: 0.1
+
+
+# ======================
+# Loss configuration
+# ======================
+loss:
+  name: bhybrid
+  params: {}
+
+
+# ======================
+# Metric configuration
+# ======================
+metric:
+  pearsonic: {}
+  spearmanic: {}
+  top:
+    k: 2
+  pnl: {}
+
+
+# ======================
+# Training configuration
+# ======================
+train:
+  epochs: 1
+  lr: 0.001
+  optimizer:
+    name: Adam
+    params:
+      weight_decay: 0.0001
+  scheduler:
+    name: CosineAnnealingLR
+    params:
+      T_max: 10
+      eta_min: 0.00001
+  device: cpu
+  record: True
+  logdir: cnn1d_attention
+  early_stop:
+    patience: 5
+    monitor:
+      - val_loss
+      - pearsonic
+      - top
+      - pnl
+  checkpoint:
+    save_best: True
+    save_latest: True
+    save_every_step: True
+
+
+# ======================
+# Evaluating configuration
+# ======================
+eval:
+  device: cpu
+  record: False
+  logdir: cnn1d_attention
+
+
+# end of cfgs/cnncs.yaml
