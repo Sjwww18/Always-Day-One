@@ -41,6 +41,8 @@ class LINEAR(nn.Module):
             nn.init.zeros_(self.linear.bias)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # such transpose is to adapt the cnn model
+        x = x.transpose(-2, -1)
         return self.linear(x)
 
 
